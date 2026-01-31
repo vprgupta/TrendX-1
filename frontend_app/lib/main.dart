@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/theme.dart';
+import 'config/environment.dart';
 import 'features/auth/view/auth_wrapper.dart';
 import 'core/services/saved_trends_service.dart';
 import 'core/services/theme_service.dart';
@@ -9,6 +10,15 @@ import 'core/di/service_locator.dart'; // Import DI
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize environment configuration
+  const envName = String.fromEnvironment('ENV', defaultValue: 'development');
+  if (envName == 'production') {
+    EnvironmentConfig.setEnvironment(Environment.production);
+  } else if (envName == 'staging') {
+    EnvironmentConfig.setEnvironment(Environment.staging);
+  }
+  
   setupLocator(); // Initialize DI
   await SavedTrendsService().loadSavedTrends();
   runApp(const ProviderScope(child: MyApp())); // Wrap with ProviderScope

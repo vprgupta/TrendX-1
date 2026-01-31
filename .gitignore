@@ -37,6 +37,7 @@ frontend_app/.flutter-plugins
 frontend_app/.flutter-plugins-dependencies
 frontend_app/.packages
 frontend_app/pubspec.lock
+frontend_app/lib/secrets.dart
 
 # Android related
 **/android/**/gradle-wrapper.jar
