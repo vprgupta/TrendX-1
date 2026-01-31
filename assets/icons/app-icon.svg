@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Main gradient from blue to purple -->
+    <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Background gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E1B4B;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background with rounded corners -->
+  <rect width="1024" height="1024" rx="180" ry="180" fill="url(#bgGradient)"/>
+  
+  <!-- Main X symbol with integrated trending arrow -->
+  <g transform="translate(512, 512)">
+    <!-- Left stroke of X with upward trend -->
+    <path d="M -120 -150 L -40 -70 L 40 -150 L 120 -70 L 40 10 L 120 90 L 40 170 L -40 90 L -120 170 L -200 90 L -120 10 L -200 -70 Z" 
+          fill="url(#mainGradient)" 
+          stroke="none"/>
+    
+    <!-- Trending arrow integrated into the X -->
+    <path d="M 60 -130 L 140 -130 L 140 -50 L 120 -50 L 120 -110 L 80 -110 Z" 
+          fill="url(#mainGradient)" 
+          opacity="0.9"/>
+    
+    <!-- Small trending dots for emphasis -->
+    <circle cx="-80" cy="-40" r="8" fill="#00D4FF" opacity="0.8"/>
+    <circle cx="0" cy="-80" r="6" fill="#00D4FF" opacity="0.6"/>
+    <circle cx="80" cy="-120" r="4" fill="#00D4FF" opacity="0.4"/>
+  </g>
+</svg>

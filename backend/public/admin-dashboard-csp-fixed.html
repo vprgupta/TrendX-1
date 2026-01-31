@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrendX Admin Dashboard</title>
+
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://cdn.socket.io;
+        style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
+        font-src 'self' https://cdnjs.cloudflare.com;
+        img-src 'self' data: https:;
+        connect-src 'self' http://localhost:3000 ws://localhost:3000;
+    ">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard-styles.css">
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">TX</div>
+                <span class="sidebar-brand">TrendX</span>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+
+            <div class="sidebar-nav">
+                <!-- Main Navigation -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Main</div>
+                    <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                        <div class="nav-item-icon">
+                            <i class="fas fa-home"></i>
+                        </div>
+                        <span class="nav-item-text">Dashboard</span>
+                    </a>
+                    <a href="#trends" class="nav-item" data-page="trends">
+                        <div class="nav-item-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <span class="nav-item-text">Trends Management</span>
+                        <span class="nav-item-badge">12</span>
+                    </a>
+                    <a href="#users" class="nav-item" data-page="users">
+                        <div class="nav-item-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <span class="nav-item-text">Users Management</span>
+                    </a>
+                    <a href="#news" class="nav-item" data-page="news">
+                        <div class="nav-item-icon">
+                            <i class="fas fa-newspaper"></i>
+                        </div>
+                        <span class="nav-item-text">World News</span>
+                        <span class="nav-item-badge new-badge">New</span>
+                    </a>
+                </div>
+
+                <!-- Analytics -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Analytics</div>
+                    <a href="#analytics" class="nav-item" data-page="analytics">
+                        <div class="nav-item-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <span class="nav-item-text">Analytics & Reports</span>
+                    </a>
+                    <a href="#integrations" class="nav-item" data-page="integrations">
+                        <div class="nav-item-icon">
+                            <i class="fas fa-plug"></i>
+                        </div>
+                        <span class="nav-item-text">Platform Integrations</span>
+                    </a>
+                </div>
+
+                <!-- System -->
+                <div class="nav-section">
+                    <div class="nav-section-title">System</div>
+                    <a href="#settings" class="nav-item" data-page="settings">
+                        <div class="nav-item-icon">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <span class="nav-item-text">Settings</span>
+                    </a>
+                    <a href="#api-docs" class="nav-item" data-page="api-docs">
+                        <div class="nav-item-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <span class="nav-item-text">API Documentation</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Sidebar Overlay for Mobile -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-container">
+                    <div class="header-left">
+                        <button class="mobile-menu-btn" id="mobileMenuBtn">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                    </div>
+
+                    <!-- Search Section -->
+                    <div class="search-section">
+                        <div class="search-container">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="search-input" placeholder="Search trends, users, analytics...">
+                        </div>
+                    </div>
+
+                    <!-- Header Actions -->
+                    <div class="header-actions">
+                        <!-- Notifications -->
+                        <button class="action-btn" title="Notifications">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge"></span>
+                        </button>
+
+                        <!-- Dark/Light Mode Toggle -->
+                        <button class="action-btn theme-toggle" id="themeToggle" title="Toggle theme">
+                            <i class="fas fa-moon" id="themeIcon"></i>
+                        </button>
+
+                        <!-- Profile Dropdown -->
+                        <div class="profile-dropdown">
+                            <button class="profile-btn">
+                                <div class="profile-avatar">AD</div>
+                                <div class="profile-info">
+                                    <span class="profile-name">Admin</span>
+                                    <span class="profile-role">Administrator</span>
+                                </div>
+                                <i class="fas fa-chevron-down"
+                                    style="color: var(--text-secondary); font-size: 0.75rem;"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content" id="dashboardContent">
+                <!-- Dashboard Page -->
+                <div id="dashboardPage" class="page-content">
+                    <!-- Key Metrics Cards -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Total Active Trends</span>
+                                <div class="stat-icon" style="background-color: var(--primary-color);">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value" id="totalTrends">0</div>
+                            <div class="stat-change positive">
+                                <i class="fas fa-arrow-up"></i> +12% from last month
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Total Users</span>
+                                <div class="stat-icon" style="background-color: var(--success-color);">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value" id="totalUsers">0</div>
+                            <div class="stat-change positive">
+                                <i class="fas fa-arrow-up"></i> +8% from last month
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">API Requests Today</span>
+                                <div class="stat-icon" style="background-color: var(--warning-color);">
+                                    <i class="fas fa-server"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value" id="apiRequests">0</div>
+                            <div class="stat-change negative">
+                                <i class="fas fa-arrow-down"></i> -3% from yesterday
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Platform Coverage</span>
+                                <div class="stat-icon" style="background-color: #6366F1;">
+                                    <i class="fas fa-globe"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value">4</div>
+                            <div class="stat-change positive">
+                                <i class="fas fa-check"></i> All platforms active
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trends Management Page -->
+                <div id="trendsPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <div class="page-header-content">
+                            <h2>Trends Management</h2>
+                            <p>Monitor and manage trending topics across all platforms</p>
+                        </div>
+                        <div class="page-actions">
+                            <button class="btn btn-primary" id="refreshTrendsBtn">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="trends-filters">
+                        <div class="filter-group">
+                            <label>Platform:</label>
+                            <select id="platformFilter" class="filter-select">
+                                <option value="">All Platforms</option>
+                                <option value="twitter">Twitter</option>
+                                <option value="reddit">Reddit</option>
+                                <option value="youtube">YouTube</option>
+                                <option value="news">News</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Status:</label>
+                            <select id="statusFilter" class="filter-select">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Search:</label>
+                            <input type="text" id="trendsSearch" class="filter-input" placeholder="Search trends...">
+                        </div>
+                    </div>
+
+                    <div class="trends-table-container">
+                        <table class="trends-table" id="trendsTable">
+                            <thead>
+                                <tr>
+                                    <th>Trend</th>
+                                    <th>Platform</th>
+                                    <th>Engagement</th>
+                                    <th>Sentiment</th>
+                                    <th>Created</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trendsTableBody">
+                                <tr class="loading-row">
+                                    <td colspan="7" class="loading-cell">
+                                        <i class="fas fa-spinner fa-spin"></i> Loading trends...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Other Pages -->
+                <div id="usersPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <div class="page-header-content">
+                            <h2>Users Management</h2>
+                            <p>Manage user accounts, permissions, and activity</p>
+                        </div>
+                        <div class="page-actions">
+                            <button class="btn btn-secondary" id="exportUsersBtn">
+                                <i class="fas fa-download"></i> Export Users
+                            </button>
+                            <button class="btn btn-primary" id="addUserBtn">
+                                <i class="fas fa-plus"></i> Add User
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- User Stats Cards -->
+                    <div class="user-stats-grid">
+                        <div class="user-stat-card">
+                            <div class="stat-icon active-users">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-label">Active Users</div>
+                                <div class="stat-value" id="activeUsersCount">0</div>
+                                <div class="stat-change positive">+5% this week</div>
+                            </div>
+                        </div>
+
+                        <div class="user-stat-card">
+                            <div class="stat-icon new-users">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-label">New Users</div>
+                                <div class="stat-value" id="newUsersCount">0</div>
+                                <div class="stat-change positive">+12% this month</div>
+                            </div>
+                        </div>
+
+                        <div class="user-stat-card">
+                            <div class="stat-icon admin-users">
+                                <i class="fas fa-user-shield"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-label">Admin Users</div>
+                                <div class="stat-value" id="adminUsersCount">0</div>
+                                <div class="stat-change neutral">No change</div>
+                            </div>
+                        </div>
+
+                        <div class="user-stat-card">
+                            <div class="stat-icon blocked-users">
+                                <i class="fas fa-user-slash"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-label">Blocked Users</div>
+                                <div class="stat-value" id="blockedUsersCount">0</div>
+                                <div class="stat-change negative">-2% this month</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Filters -->
+                    <div class="user-filters">
+                        <div class="filter-group">
+                            <label>Status:</label>
+                            <select id="userStatusFilter" class="filter-select">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="blocked">Blocked</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Role:</label>
+                            <select id="userRoleFilter" class="filter-select">
+                                <option value="">All Roles</option>
+                                <option value="admin">Admin</option>
+                                <option value="user">User</option>
+                                <option value="moderator">Moderator</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Search:</label>
+                            <input type="text" id="userSearch" class="filter-input" placeholder="Search users...">
+                        </div>
+                        <div class="filter-group">
+                            <button class="btn btn-secondary" id="refreshUsersBtn">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Users Table -->
+                    <div class="users-table-container">
+                        <table class="users-table">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAllUsers">
+                                    </th>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Last Active</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr>
+                                    <td colspan="8" class="loading-cell">
+                                        <i class="fas fa-spinner fa-spin"></i> Loading users...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Bulk Actions -->
+                    <div class="bulk-actions" id="bulkActions" style="display: none;">
+                        <div class="bulk-actions-content">
+                            <span id="selectedCount">0 users selected</span>
+                            <div class="bulk-buttons">
+                                <button class="btn btn-secondary" onclick="bulkAction('activate')">
+                                    <i class="fas fa-user-check"></i> Activate
+                                </button>
+                                <button class="btn btn-warning" onclick="bulkAction('deactivate')">
+                                    <i class="fas fa-user-times"></i> Deactivate
+                                </button>
+                                <button class="btn btn-danger" onclick="bulkAction('delete')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Modal -->
+                <div id="userModal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modalTitle">Add New User</h3>
+                            <button class="modal-close" onclick="closeUserModal()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="userForm">
+                                <div class="form-group">
+                                    <label>Full Name</label>
+                                    <input type="text" id="userName" class="form-input" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" id="userEmail" class="form-input" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Role</label>
+                                    <select id="userRole" class="form-input" required>
+                                        <option value="user">User</option>
+                                        <option value="moderator">Moderator</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select id="userStatus" class="form-input" required>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="passwordGroup">
+                                    <label>Password</label>
+                                    <input type="password" id="userPassword" class="form-input">
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeUserModal()">Cancel</button>
+                            <button class="btn btn-primary" onclick="saveUser()">Save User</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="analyticsPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <div class="page-header-content">
+                            <h2>Analytics & Reports</h2>
+                            <p>Comprehensive insights and performance metrics</p>
+                        </div>
+                        <div class="page-actions">
+                            <button class="btn btn-secondary" id="exportReportBtn">
+                                <i class="fas fa-download"></i> Export Report
+                            </button>
+                            <button class="btn btn-primary" id="refreshAnalyticsBtn">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Overview Cards -->
+                    <div class="analytics-overview">
+                        <div class="analytics-card">
+                            <div class="analytics-header">
+                                <h3>Trend Performance</h3>
+                                <select class="time-filter" id="trendTimeFilter">
+                                    <option value="7d">Last 7 days</option>
+                                    <option value="30d" selected>Last 30 days</option>
+                                    <option value="90d">Last 90 days</option>
+                                </select>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="trendChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="analytics-card">
+                            <div class="analytics-header">
+                                <h3>Platform Distribution</h3>
+                                <span class="chart-legend">Active Trends by Platform</span>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="platformChart" width="300" height="300"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Grid -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-icon twitter">
+                                <i class="fab fa-twitter"></i>
+                            </div>
+                            <div class="metric-content">
+                                <h4>Twitter Engagement</h4>
+                                <div class="metric-value" id="twitterEngagement">0</div>
+                                <div class="metric-change positive" id="twitterChange">+0%</div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon youtube">
+                                <i class="fab fa-youtube"></i>
+                            </div>
+                            <div class="metric-content">
+                                <h4>YouTube Views</h4>
+                                <div class="metric-value" id="youtubeViews">0</div>
+                                <div class="metric-change positive" id="youtubeChange">+0%</div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon reddit">
+                                <i class="fab fa-reddit"></i>
+                            </div>
+                            <div class="metric-content">
+                                <h4>Reddit Score</h4>
+                                <div class="metric-value" id="redditScore">0</div>
+                                <div class="metric-change negative" id="redditChange">+0%</div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon news">
+                                <i class="fas fa-newspaper"></i>
+                            </div>
+                            <div class="metric-content">
+                                <h4>News Articles</h4>
+                                <div class="metric-value" id="newsArticles">0</div>
+                                <div class="metric-change positive" id="newsChange">+0%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Trends Table -->
+                    <div class="analytics-section">
+                        <div class="section-header">
+                            <h3>Top Performing Trends</h3>
+                            <div class="section-filters">
+                                <select id="topTrendsFilter">
+                                    <option value="engagement">By Engagement</option>
+                                    <option value="growth">By Growth</option>
+                                    <option value="recent">Most Recent</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="trends-analytics-table">
+                            <table class="analytics-table">
+                                <thead>
+                                    <tr>
+                                        <th>Trend</th>
+                                        <th>Platform</th>
+                                        <th>Engagement</th>
+                                        <th>Growth Rate</th>
+                                        <th>Sentiment</th>
+                                        <th>Performance</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="topTrendsTableBody">
+                                    <tr>
+                                        <td colspan="6" class="loading-cell">
+                                            <i class="fas fa-spinner fa-spin"></i> Loading analytics...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Sentiment Analysis -->
+                    <div class="analytics-section">
+                        <div class="section-header">
+                            <h3>Sentiment Analysis</h3>
+                            <span class="section-subtitle">Overall sentiment across all platforms</span>
+                        </div>
+                        <div class="sentiment-grid">
+                            <div class="sentiment-card positive">
+                                <div class="sentiment-icon">
+                                    <i class="fas fa-smile"></i>
+                                </div>
+                                <div class="sentiment-content">
+                                    <div class="sentiment-label">Positive</div>
+                                    <div class="sentiment-value" id="positiveCount">0</div>
+                                    <div class="sentiment-percentage" id="positivePercent">0%</div>
+                                </div>
+                            </div>
+
+                            <div class="sentiment-card neutral">
+                                <div class="sentiment-icon">
+                                    <i class="fas fa-meh"></i>
+                                </div>
+                                <div class="sentiment-content">
+                                    <div class="sentiment-label">Neutral</div>
+                                    <div class="sentiment-value" id="neutralCount">0</div>
+                                    <div class="sentiment-percentage" id="neutralPercent">0%</div>
+                                </div>
+                            </div>
+
+                            <div class="sentiment-card negative">
+                                <div class="sentiment-icon">
+                                    <i class="fas fa-frown"></i>
+                                </div>
+                                <div class="sentiment-content">
+                                    <div class="sentiment-label">Negative</div>
+                                    <div class="sentiment-value" id="negativeCount">0</div>
+                                    <div class="sentiment-percentage" id="negativePercent">0%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="integrationsPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <div class="page-header-content">
+                            <h2>Platform Integrations</h2>
+                            <p>Manage and configure platform connections for trend monitoring</p>
+                        </div>
+                        <div class="page-actions">
+                            <button class="btn btn-primary" id="addIntegrationBtn">
+                                <i class="fas fa-plus"></i> Add Integration
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Integration Cards Grid -->
+                    <div class="integrations-grid">
+                        <!-- Twitter Integration -->
+                        <div class="integration-card" data-platform="twitter">
+                            <div class="integration-header">
+                                <div class="integration-icon twitter">
+                                    <i class="fab fa-twitter"></i>
+                                </div>
+                                <div class="integration-info">
+                                    <h3>Twitter</h3>
+                                    <p>Monitor trending topics and hashtags</p>
+                                </div>
+                                <div class="integration-status">
+                                    <span class="status-badge active">Connected</span>
+                                </div>
+                            </div>
+                            <div class="integration-stats">
+                                <div class="stat">
+                                    <span class="stat-label">Trends Collected</span>
+                                    <span class="stat-value">1,247</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-label">Last Updated</span>
+                                    <span class="stat-value">2 min ago</span>
+                                </div>
+                            </div>
+                            <div class="integration-actions">
+                                <button class="btn btn-secondary" onclick="configureIntegration('twitter')">
+                                    <i class="fas fa-cog"></i> Configure
+                                </button>
+                                <button class="btn btn-danger" onclick="disconnectIntegration('twitter')">
+                                    <i class="fas fa-unlink"></i> Disconnect
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- YouTube Integration -->
+                        <div class="integration-card" data-platform="youtube">
+                            <div class="integration-header">
+                                <div class="integration-icon youtube">
+                                    <i class="fab fa-youtube"></i>
+                                </div>
+                                <div class="integration-info">
+                                    <h3>YouTube</h3>
+                                    <p>Track trending videos and topics</p>
+                                </div>
+                                <div class="integration-status">
+                                    <span class="status-badge active">Connected</span>
+                                </div>
+                            </div>
+                            <div class="integration-stats">
+                                <div class="stat">
+                                    <span class="stat-label">Trends Collected</span>
+                                    <span class="stat-value">892</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-label">Last Updated</span>
+                                    <span class="stat-value">5 min ago</span>
+                                </div>
+                            </div>
+                            <div class="integration-actions">
+                                <button class="btn btn-secondary" onclick="configureIntegration('youtube')">
+                                    <i class="fas fa-cog"></i> Configure
+                                </button>
+                                <button class="btn btn-danger" onclick="disconnectIntegration('youtube')">
+                                    <i class="fas fa-unlink"></i> Disconnect
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Reddit Integration -->
+                        <div class="integration-card" data-platform="reddit">
+                            <div class="integration-header">
+                                <div class="integration-icon reddit">
+                                    <i class="fab fa-reddit"></i>
+                                </div>
+                                <div class="integration-info">
+                                    <h3>Reddit</h3>
+                                    <p>Monitor popular posts and discussions</p>
+                                </div>
+                                <div class="integration-status">
+                                    <span class="status-badge inactive">Disconnected</span>
+                                </div>
+                            </div>
+                            <div class="integration-stats">
+                                <div class="stat">
+                                    <span class="stat-label">Trends Collected</span>
+                                    <span class="stat-value">0</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-label">Last Updated</span>
+                                    <span class="stat-value">Never</span>
+                                </div>
+                            </div>
+                            <div class="integration-actions">
+                                <button class="btn btn-primary" onclick="connectIntegration('reddit')">
+                                    <i class="fas fa-link"></i> Connect
+                                </button>
+                                <button class="btn btn-secondary" disabled>
+                                    <i class="fas fa-cog"></i> Configure
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- News API Integration -->
+                        <div class="integration-card" data-platform="news">
+                            <div class="integration-header">
+                                <div class="integration-icon news">
+                                    <i class="fas fa-newspaper"></i>
+                                </div>
+                                <div class="integration-info">
+                                    <h3>News API</h3>
+                                    <p>Track trending news and articles</p>
+                                </div>
+                                <div class="integration-status">
+                                    <span class="status-badge warning">Limited</span>
+                                </div>
+                            </div>
+                            <div class="integration-stats">
+                                <div class="stat">
+                                    <span class="stat-label">Trends Collected</span>
+                                    <span class="stat-value">456</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-label">Last Updated</span>
+                                    <span class="stat-value">1 hour ago</span>
+                                </div>
+                            </div>
+                            <div class="integration-actions">
+                                <button class="btn btn-secondary" onclick="configureIntegration('news')">
+                                    <i class="fas fa-cog"></i> Configure
+                                </button>
+                                <button class="btn btn-warning" onclick="upgradeIntegration('news')">
+                                    <i class="fas fa-arrow-up"></i> Upgrade
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Integration Settings Panel -->
+                    <div class="integration-settings" id="integrationSettings" style="display: none;">
+                        <div class="settings-header">
+                            <h3 id="settingsTitle">Platform Configuration</h3>
+                            <button class="btn btn-secondary" onclick="closeSettings()">
+                                <i class="fas fa-times"></i> Close
+                            </button>
+                        </div>
+                        <div class="settings-content" id="settingsContent">
+                            <!-- Dynamic content will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="settingsPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <div class="page-header-content">
+                            <h2>System Settings</h2>
+                            <p>Configure global application settings</p>
+                        </div>
+                        <div class="page-actions">
+                            <button class="btn btn-primary" id="saveSettingsBtn">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="settings-container">
+                        <form id="settingsForm">
+                            <!-- General Settings -->
+                            <div class="settings-section">
+                                <h3>General Configuration</h3>
+                                <div class="form-group">
+                                    <label>Site Name</label>
+                                    <input type="text" id="siteName" class="form-input" value="TrendX">
+                                </div>
+                                <div class="form-group">
+                                    <label>Maintenance Mode</label>
+                                    <select id="maintenanceMode" class="form-input">
+                                        <option value="false">Disabled</option>
+                                        <option value="true">Enabled</option>
+                                    </select>
+                                    <small class="form-help">Enable to prevent user access during updates</small>
+                                </div>
+                            </div>
+
+                            <!-- Security Settings -->
+                            <div class="settings-section">
+                                <h3>Security</h3>
+                                <div class="form-group">
+                                    <label>Session Timeout (minutes)</label>
+                                    <input type="number" id="sessionTimeout" class="form-input" value="60">
+                                </div>
+                                <div class="form-group">
+                                    <label>Max Login Attempts</label>
+                                    <input type="number" id="maxLoginAttempts" class="form-input" value="5">
+                                </div>
+                            </div>
+
+                            <!-- Notification Settings -->
+                            <div class="settings-section">
+                                <h3>Notifications</h3>
+                                <div class="form-check">
+                                    <input type="checkbox" id="emailAlerts" checked>
+                                    <label for="emailAlerts">Enable Email Alerts</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" id="systemNotifications" checked>
+                                    <label for="systemNotifications">Enable System Notifications</label>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="newsPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <div class="page-header-content">
+                            <h2>World News</h2>
+                            <p>Trending stories from around the globe</p>
+                        </div>
+                        <div class="page-actions">
+                            <div class="news-tabs">
+                                <button class="news-tab active" data-category="world">World</button>
+                                <button class="news-tab" data-category="technology">Technology</button>
+                            </div>
+                            <button class="btn btn-primary" id="refreshNewsBtn">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="news-grid" id="newsGrid">
+                        <div class="loading-cell">
+                            <i class="fas fa-spinner fa-spin"></i> Loading news...
+                        </div>
+                    </div>
+                </div>
+
+                <div id="api-docsPage" class="page-content" style="display: none;">
+                    <div class="page-header">
+                        <div class="page-header-content">
+                            <h2>API Documentation</h2>
+                            <p>Reference for TrendX REST API endpoints</p>
+                        </div>
+                        <div class="page-actions">
+                            <button class="btn btn-secondary" id="refreshDocsBtn">
+                                <i class="fas fa-sync-alt"></i> Refresh Docs
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="api-docs-container" id="apiDocsContainer">
+                        <div class="loading-cell">
+                            <i class="fas fa-spinner fa-spin"></i> Loading documentation...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="dashboard-script.js"></script>
+</body>
+
+</html>

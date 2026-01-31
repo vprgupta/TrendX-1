@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Dynamic gradient -->
+    <linearGradient id="dynamicGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EC4899;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Dark background -->
+    <radialGradient id="darkBg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" style="stop-color:#1E293B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0F172A;stop-opacity:1" />
+    </radialGradient>
+    
+    <!-- Glow effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="200" ry="200" fill="url(#darkBg)"/>
+  
+  <!-- Main TX design - overlapping letters -->
+  <g transform="translate(512, 512)" filter="url(#glow)">
+    <!-- Combined TX shape -->
+    <g>
+      <!-- T base -->
+      <path d="M -200 -200 L 200 -200 L 200 -120 L 40 -120 L 40 200 L -40 200 L -40 -120 L -200 -120 Z" 
+            fill="url(#dynamicGradient)" 
+            stroke="none"/>
+      
+      <!-- X overlapping the T -->
+      <g transform="translate(0, 20)">
+        <!-- X first stroke -->
+        <path d="M -120 -160 L -60 -100 L 60 -160 L 120 -100 L 60 20 L 120 140 L 60 200 L -60 140 L -120 200 L -180 140 L -120 20 L -180 -100 Z" 
+              fill="url(#dynamicGradient)" 
+              opacity="0.9"/>
+      </g>
+      
+      <!-- Intersection highlight -->
+      <circle cx="0" cy="-50" r="30" fill="#FFFFFF" opacity="0.3"/>
+    </g>
+    
+    <!-- Trending elements -->
+    <g transform="translate(150, -150)" opacity="0.7">
+      <!-- Upward trend line -->
+      <path d="M -20 40 L 0 20 L 20 0 L 40 -20" 
+            stroke="#00D4FF" 
+            stroke-width="8" 
+            stroke-linecap="round" 
+            fill="none"/>
+      <!-- Arrow tip -->
+      <path d="M 30 -30 L 50 -20 L 40 -10 Z" fill="#00D4FF"/>
+    </g>
+  </g>
+  
+  <!-- Decorative elements -->
+  <g opacity="0.15">
+    <!-- Grid pattern -->
+    <defs>
+      <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+        <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#00D4FF" stroke-width="1"/>
+      </pattern>
+    </defs>
+    <rect width="1024" height="1024" fill="url(#grid)"/>
+  </g>
+</svg>

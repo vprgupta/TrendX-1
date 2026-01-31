@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SVG to PNG Converter</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        canvas { border: 1px solid #ccc; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>SVG to PNG Converter for TrendX App Icon</h1>
+    <p>This will convert your SVG icon to the required PNG formats.</p>
+    
+    <canvas id="canvas" width="1024" height="1024"></canvas>
+    <br>
+    <button onclick="convertSVG()">Convert SVG to PNG</button>
+    <button onclick="downloadPNG('app_icon')">Download Main Icon</button>
+    <button onclick="downloadPNG('app_icon_foreground')">Download Foreground Icon</button>
+    
+    <script>
+        const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0EA5E9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="backgroundGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E1B4B;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0.1" />
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="200" ry="200" fill="url(#backgroundGradient)"/>
+  <g transform="translate(512, 512)">
+    <g transform="translate(-80, 0)">
+      <rect x="-80" y="-180" width="160" height="60" rx="30" fill="url(#primaryGradient)"/>
+      <rect x="-30" y="-120" width="60" height="300" rx="30" fill="url(#primaryGradient)"/>
+      <rect x="-70" y="-170" width="140" height="20" rx="10" fill="url(#accentGradient)"/>
+    </g>
+    <g transform="translate(80, 0)">
+      <rect x="-8" y="-180" width="60" height="360" rx="30" fill="url(#primaryGradient)" transform="rotate(45)"/>
+      <rect x="-8" y="-180" width="60" height="360" rx="30" fill="url(#primaryGradient)" transform="rotate(-45)"/>
+      <circle cx="0" cy="0" r="25" fill="url(#accentGradient)"/>
+    </g>
+    <g transform="translate(120, -120)" opacity="0.8">
+      <path d="M 0 20 L 30 -10 L 60 20 L 45 20 L 45 40 L 15 40 L 15 20 Z" fill="#00D4FF"/>
+    </g>
+  </g>
+  <g opacity="0.2">
+    <circle cx="150" cy="150" r="12" fill="#00D4FF"/>
+    <circle cx="874" cy="150" r="8" fill="#8B5CF6"/>
+    <circle cx="150" cy="874" r="10" fill="#8B5CF6"/>
+    <circle cx="874" cy="874" r="14" fill="#00D4FF"/>
+    <line x1="150" y1="150" x2="874" y2="150" stroke="#00D4FF" stroke-width="2" opacity="0.3"/>
+    <line x1="874" y1="150" x2="874" y2="874" stroke="#8B5CF6" stroke-width="2" opacity="0.3"/>
+  </g>
+</svg>`;
+
+        function convertSVG() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const img = new Image();
+            const svgBlob = new Blob([svgContent], {type: 'image/svg+xml'});
+            const url = URL.createObjectURL(svgBlob);
+            
+            img.onload = function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, 1024, 1024);
+                URL.revokeObjectURL(url);
+            };
+            
+            img.src = url;
+        }
+        
+        function downloadPNG(filename) {
+            const canvas = document.getElementById('canvas');
+            const link = document.createElement('a');
+            link.download = filename + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Auto-convert on load
+        window.onload = convertSVG;
+    </script>
+</body>
+</html>

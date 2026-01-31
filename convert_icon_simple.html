@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SVG to PNG Converter</title>
+</head>
+<body>
+    <h2>SVG to PNG Converter</h2>
+    <input type="file" id="svgFile" accept=".svg">
+    <br><br>
+    <div id="output"></div>
+
+    <script>
+        document.getElementById('svgFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const svgContent = e.target.result;
+                    convertSVGToPNG(svgContent);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        function convertSVGToPNG(svgContent) {
+            const sizes = [
+                {name: 'ic_launcher_48', size: 48},
+                {name: 'ic_launcher_72', size: 72},
+                {name: 'ic_launcher_96', size: 96},
+                {name: 'ic_launcher_144', size: 144},
+                {name: 'ic_launcher_192', size: 192},
+                {name: 'ios_20', size: 20},
+                {name: 'ios_40', size: 40},
+                {name: 'ios_60', size: 60},
+                {name: 'ios_29', size: 29},
+                {name: 'ios_58', size: 58},
+                {name: 'ios_87', size: 87},
+                {name: 'ios_80', size: 80},
+                {name: 'ios_120', size: 120},
+                {name: 'ios_180', size: 180},
+                {name: 'ios_76', size: 76},
+                {name: 'ios_152', size: 152},
+                {name: 'ios_167', size: 167},
+                {name: 'ios_1024', size: 1024}
+            ];
+
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = '<h3>Generated PNG Files:</h3>';
+
+            sizes.forEach(({name, size}) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = size;
+                canvas.height = size;
+
+                const img = new Image();
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0, size, size);
+                    
+                    canvas.toBlob(function(blob) {
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `${name}.png`;
+                        link.textContent = `Download ${name}.png (${size}x${size})`;
+                        link.style.display = 'block';
+                        link.style.margin = '5px 0';
+                        outputDiv.appendChild(link);
+                    });
+                };
+                
+                const svgBlob = new Blob([svgContent], {type: 'image/svg+xml'});
+                const svgUrl = URL.createObjectURL(svgBlob);
+                img.src = svgUrl;
+            });
+        }
+    </script>
+</body>
+</html>
