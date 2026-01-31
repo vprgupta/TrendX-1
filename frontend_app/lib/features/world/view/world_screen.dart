@@ -3,6 +3,7 @@ import '../../../core/widgets/news_feed.dart';
 import '../../../core/widgets/empty_state_widget.dart';
 import '../../../core/services/preferences_service.dart';
 import '../../../core/di/service_locator.dart';
+import '../../settings/view/settings_screen.dart';
 
 class WorldScreen extends StatefulWidget {
   const WorldScreen({super.key});
@@ -54,7 +55,12 @@ class _WorldScreenState extends State<WorldScreen> {
         icon: Icons.language,
         actionLabel: 'Select Topics',
         onAction: () {
-          // TODO: Navigate to settings
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const SettingsScreen(),
+            ),
+          );
         },
       );
     }

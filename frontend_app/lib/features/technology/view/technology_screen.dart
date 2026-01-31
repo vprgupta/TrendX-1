@@ -3,6 +3,7 @@ import '../../../core/widgets/news_feed.dart';
 import '../../../core/widgets/empty_state_widget.dart';
 import '../../../core/services/preferences_service.dart';
 import '../../../core/di/service_locator.dart'; // Import DI
+import '../../settings/view/settings_screen.dart';
 
 class TechnologyScreen extends StatefulWidget {
   const TechnologyScreen({super.key});
@@ -73,7 +74,12 @@ class _TechnologyScreenState extends State<TechnologyScreen> {
               icon: Icons.category_outlined,
               actionLabel: 'Customize Feed',
               onAction: () {
-                // TODO: Navigate to settings or show preference dialog
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
               },
             )
           : ListView.builder(

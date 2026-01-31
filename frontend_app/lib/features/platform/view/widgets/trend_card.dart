@@ -4,6 +4,7 @@ import '../../../../screens/youtube_player_screen.dart';
 import '../../../../screens/tiktok_player_screen.dart';
 import '../../../../screens/ai_explanation_screen.dart';
 import '../../../../features/chat/view/chat_screen.dart';
+import '../../../../core/services/saved_trends_service.dart';
 
 class TrendCard extends StatelessWidget {
   final PlatformTrend trend;
@@ -263,11 +264,46 @@ class TrendCard extends StatelessWidget {
             'Save',
             Icons.bookmark_border,
             Colors.orange,
-            () {
-               // TODO: Save logic
-               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Saved to bookmarks')),
-              );
+            () async {
+              try {
+                // Import SavedTrendsService - add at top of file
+                final SavedTrendsService savedService = SavedTrendsService();
+                
+                final trendData = {
+                  'id': '${trend.platformName}_${trend.title}_${DateTime.now().millisecondsSinceEpoch}',
+                  'title': trend.title,
+                  'platform': trend.platformName,
+                  'caption': trend.caption,
+                  'userName': trend.userName,
+                  'userAvatarUrl': trend.userAvatarUrl,
+                  'mediaUrl': trend.mediaUrl,
+                  'savedAt': DateTime.now().toIso8601String(),
+                };
+                
+                await savedService.saveTrend(trendData);
+                
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Saved: ${trend.title}'),
+                      duration: const Duration(seconds: 2),
+                      action: SnackBarAction(
+                        label: 'View',
+                        onPressed: () {
+                          // Navigate to saved trends
+                          Navigator.pushNamed(context, '/saved-trends');
+                        },
+                      ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error saving trend: $e')),
+                  );
+                }
+              }
             },
           ),
         ),

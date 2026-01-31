@@ -3,6 +3,7 @@ import '../../../core/widgets/news_feed.dart';
 import '../../../core/widgets/empty_state_widget.dart';
 import '../../../core/services/preferences_service.dart';
 import '../../../core/di/service_locator.dart';
+import '../../settings/view/settings_screen.dart';
 
 class CountryScreen extends StatefulWidget {
   const CountryScreen({super.key});
@@ -71,7 +72,12 @@ class _CountryScreenState extends State<CountryScreen> {
               icon: Icons.public,
               actionLabel: 'Select Countries',
               onAction: () {
-                // TODO: Navigate to settings
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
               },
             )
           : ListView.builder(
