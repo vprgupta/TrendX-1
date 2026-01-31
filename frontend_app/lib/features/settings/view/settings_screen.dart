@@ -9,7 +9,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: AppTheme.primaryColor,
+        backgroundColor: AppTheme.violet,
       ),
       body: ListView(
         children: [
@@ -18,7 +18,7 @@ class SettingsScreen extends StatelessWidget {
             'Preferences',
             [
               ListTile(
-                leading: Icon(Icons.location_on, color: AppTheme.accentColor),
+                leading: Icon(Icons.location_on, color: AppTheme.cyan),
                 title: const Text('Country Preferences'),
                 subtitle: const Text('Select your preferred countries'),
                 trailing: const Icon(Icons.chevron_right),
@@ -27,7 +27,7 @@ class SettingsScreen extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: Icon(Icons.computer, color: AppTheme.accentColor),
+                leading: Icon(Icons.computer, color: AppTheme.cyan),
                 title: const Text('Technology Preferences'),
                 subtitle: const Text('Select technologies to follow'),
                 trailing: const Icon(Icons.chevron_right),
@@ -42,7 +42,7 @@ class SettingsScreen extends StatelessWidget {
             'Notifications',
             [
               SwitchListTile(
-                secondary: Icon(Icons.notifications, color: AppTheme.accentColor),
+                secondary: Icon(Icons.notifications, color: AppTheme.cyan),
                 title: const Text('Push Notifications'),
                 subtitle: const Text('Receive trend alerts'),
                 value: true,
@@ -57,12 +57,12 @@ class SettingsScreen extends StatelessWidget {
             'About',
             [
               ListTile(
-                leading: Icon(Icons.info, color: AppTheme.accentColor),
+                leading: Icon(Icons.info, color: AppTheme.cyan),
                 title: const Text('Version'),
                 subtitle: const Text('1.0.0'),
               ),
               ListTile(
-                leading: Icon(Icons.privacy_tip, color: AppTheme.accentColor),
+                leading: Icon(Icons.privacy_tip, color: AppTheme.cyan),
                 title: const Text('Privacy Policy'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
@@ -73,7 +73,7 @@ class SettingsScreen extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: Icon(Icons.description, color: AppTheme.accentColor),
+                leading: Icon(Icons.description, color: AppTheme.cyan),
                 title: const Text('Terms of Service'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
