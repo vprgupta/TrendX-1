@@ -66,16 +66,32 @@ export const ingestAllTrends = async () => {
         ]);
 
         // World categories
-        const worldCategories = ['Science', 'Agriculture', 'Space', 'Health', 'Sports', 'Environment', 'Politics', 'Entertainment'];
-        const worldNews = await Promise.all(
-            worldCategories.map(cat => getWorldNews(cat, 'us').catch(() => []))
-        );
+        const worldCategories = ['Science', 'Health', 'Sports', 'Environment', 'Politics', 'Entertainment'];
+        const worldNews: any[][] = [];
+        for (const cat of worldCategories) {
+            try {
+                const news = await getWorldNews(cat, 'us');
+                worldNews.push(news);
+                // Wait 1 second between requests to respect free tier rate limit
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            } catch (err) {
+                worldNews.push([]);
+            }
+        }
 
         // Tech categories
-        const techCategories = ['AI', 'Mobile', 'Web', 'Blockchain', 'IoT', 'Robotics', 'Cloud', 'Cybersecurity'];
-        const techNews = await Promise.all(
-            techCategories.map(cat => getTechNews(cat).catch(() => []))
-        );
+        const techCategories = ['AI', 'Mobile', 'Web', 'Cybersecurity'];
+        const techNews: any[][] = [];
+        for (const cat of techCategories) {
+            try {
+                // Assuming getTechNews also hits an API now, stagger it.
+                const tNews = await getTechNews(cat);
+                techNews.push(tNews);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            } catch (err) {
+                techNews.push([]);
+            }
+        }
 
         // Save everything
         await saveTrends(twitter, 'twitter');

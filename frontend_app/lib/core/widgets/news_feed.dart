@@ -7,16 +7,20 @@ import '../../features/news/providers/news_provider.dart';
 
 class NewsFeed extends ConsumerWidget {
   final String categoryName;
+  final String? countryOverride;
 
   const NewsFeed({
     super.key,
     required this.categoryName,
+    this.countryOverride,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch the provider for this specific category
-    final newsAsync = ref.watch(newsProvider(categoryName));
+    // Watch the provider for this specific category or country
+    final newsAsync = countryOverride != null
+        ? ref.watch(countryNewsProvider(countryOverride!))
+        : ref.watch(newsProvider(categoryName));
 
     return Column(
       children: [

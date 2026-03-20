@@ -34,3 +34,15 @@ flutter build appbundle
 # iOS (requires macOS)
 flutter build ios
 ```
+
+## Deployment
+
+### Production API 
+To run the app against the live API instead of local, modify `EnvironmentConfig` in `lib/config/environment.dart` or simply run the app with the specific environments defined via `--dart-define`.
+
+### Generate Production Release (Android)
+To automatically clean, fetch, and build the release Android App Bundle (AAB), simply run:
+```bash
+build_production.bat
+```
+Then upload `build/app/outputs/bundle/release/app-release.aab` to the Google Play Console securely.

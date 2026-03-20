@@ -3,6 +3,7 @@ import '../services/news_service.dart';
 import '../services/preferences_service.dart';
 import '../../services/youtube_service.dart';
 import '../services/theme_service.dart';
+import '../services/saved_trends_service.dart';
 
 final getIt = GetIt.instance;
 
@@ -12,4 +13,5 @@ void setupLocator() {
   getIt.registerLazySingleton<PreferencesService>(() => PreferencesService());
   getIt.registerLazySingleton<YoutubeService>(() => YoutubeService());
   getIt.registerLazySingleton<ThemeService>(() => ThemeService());
+  getIt.registerLazySingleton<SavedTrendsService>(() => SavedTrendsService());
 }

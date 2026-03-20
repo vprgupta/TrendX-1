@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../utils/logger.dart';
 import '../models/news_item.dart';
 import 'cache_service.dart';
 
@@ -20,28 +21,30 @@ class NewsService {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        final items = data.map((json) => NewsItem.fromJson(json)).toList();
+        final rawItems = data.map((json) => NewsItem.fromJson(json)).toList();
+
+        // Deduplicate by title
+        final seen = <String>{};
+        final items = rawItems.where((item) => seen.add(item.title)).toList();
         
-        // 2. Cache the result on success
-        await CacheService.cacheNews(category, items);
+        // 2. Cache the result on success (key = category + country)
+        await CacheService.cacheNews(category, country, items);
         
         return items;
       } else {
+        Logger.error('Server returned ${response.statusCode} for $category', tag: 'NewsService');
         throw Exception('Server returned ${response.statusCode}');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       // 3. Fallback to Cache on ANY error (Exception, Timeout, SocketException)
-      print('Network failed ($e), falling back to cache for $category');
+      Logger.error('Network failed, falling back to cache for $category', error: e, stackTrace: stackTrace, tag: 'NewsService');
       
-      final cached = await CacheService.getCachedNews(category);
+      final cached = await CacheService.getCachedNews(category, country);
       if (cached != null && cached.isNotEmpty) {
         return cached;
       }
       
-      // 4. If no cache, rethrow (to show error UI)
-      // We might want to return dummy data here if you still want the app to look populated during development?
-      // For "Production Grade" we usually show an error, but for this demo I'll fallback to dummy if cache is empty too 
-      // allows you to test UI without backend running.
+      // 4. If no cache either, show offline placeholder
       return _generateDummyNews(category, country); 
     }
   }

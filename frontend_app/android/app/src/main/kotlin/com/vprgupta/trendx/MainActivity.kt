@@ -1,4 +1,4 @@
-package com.example.trendix
+package com.vprgupta.trendx
 
 import io.flutter.embedding.android.FlutterActivity
 

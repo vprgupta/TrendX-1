@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
-
 export const getYouTubeTrends = async (country: string = 'US', category: string = '28') => {
+  const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+
   // If API key is available, use YouTube Data API v3
   if (YOUTUBE_API_KEY) {
     try {
@@ -19,6 +19,8 @@ export const getYouTubeTrends = async (country: string = 'US', category: string 
           }
         }
       );
+
+      console.log(`✅ Successfully fetched ${response.data.items.length} trending videos from YouTube API`);
 
       return response.data.items.map((item: any) => ({
         id: item.id,
@@ -42,6 +44,8 @@ export const getYouTubeTrends = async (country: string = 'US', category: string 
 };
 
 export const getYouTubeVideos = async (query: string) => {
+  const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+
   if (YOUTUBE_API_KEY) {
     try {
       const response = await axios.get(

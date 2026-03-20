@@ -19,12 +19,14 @@ class WebScraperService {
       print('Instagram response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
+        print('Instagram response preview: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
         final document = parser.parse(response.body);
         final trends = <Map<String, dynamic>>[];
         
         // Try multiple selectors
         var elements = document.querySelectorAll('a[href*="hashtag"], .hashtag, [data-hashtag], .tag');
         if (elements.isEmpty) {
+          print('Instagram scraping: No hashtags found with primary selectors, trying fallback...');
           elements = document.querySelectorAll('span, div, p');
         }
         
@@ -44,9 +46,12 @@ class WebScraperService {
         
         print('Instagram trends found: ${trends.length}');
         return trends.isNotEmpty ? trends : _getFallbackInstagramTrends();
+      } else {
+        print('Instagram scraping failed with status: ${response.statusCode}');
       }
-    } catch (e) {
+    } catch (e, stack) {
       print('Instagram scraping error: $e');
+      print('Stack trace: $stack');
     }
     return _getFallbackInstagramTrends();
   }
@@ -66,6 +71,7 @@ class WebScraperService {
       print('Twitter response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
+        print('Twitter response preview: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
         final document = parser.parse(response.body);
         final trends = <Map<String, dynamic>>[];
         
@@ -88,9 +94,12 @@ class WebScraperService {
         
         print('Twitter trends found: ${trends.length}');
         return trends.isNotEmpty ? trends : _getFallbackTwitterTrends();
+      } else {
+        print('Twitter scraping failed with status: ${response.statusCode}');
       }
-    } catch (e) {
+    } catch (e, stack) {
       print('Twitter scraping error: $e');
+      print('Stack trace: $stack');
     }
     return _getFallbackTwitterTrends();
   }

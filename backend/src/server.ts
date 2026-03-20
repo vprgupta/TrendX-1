@@ -4,7 +4,6 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
-import morgan from 'morgan';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import 'express-async-errors';
@@ -15,9 +14,16 @@ import adminRoutes from './routes/admin';
 import sessionRoutes from './routes/sessions';
 import { errorHandler } from './middleware/errorHandler';
 import { connectDB } from './config/database';
+import { validateEnv } from './config/envValidator';
+import { authenticate, isAdmin } from './middleware/auth';
 import logger, { morganStream } from './utils/logger';
+import analyticsRoutes from './routes/analyticsRoutes';
+import integrationRoutes from './routes/integrationRoutes';
+import * as newsController from './controllers/newsController';
+import { initializeScheduler } from './jobs/trendScheduler';
 
 dotenv.config();
+validateEnv();
 
 const app = express();
 const server = createServer(app);
@@ -65,20 +71,14 @@ const authLimiter = rateLimit({
 app.use('/api/', generalLimiter);
 app.use('/api/auth/', authLimiter);
 
-// HTTP request logging
-if (process.env.NODE_ENV === 'production') {
-  app.use(morgan('combined', { stream: morganStream }));
-} else {
-  app.use(morgan('dev', { stream: morganStream }));
-}
+// Custom HTTP request logging using winston
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.url}`);
+  next();
+});
 
 // Serve static files (HTML dashboards)
 app.use(express.static(path.join(__dirname, '../public')));
-
-import analyticsRoutes from './routes/analyticsRoutes';
-import integrationRoutes from './routes/integrationRoutes';
-
-import * as newsController from './controllers/newsController';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -92,10 +92,17 @@ app.use('/api/integrations', integrationRoutes);
 // News Route
 app.get('/api/news', newsController.getNewsByCategory);
 
-// Serve dashboard (with optional auth)
-app.get('/dashboard', (req, res) => {
-  // TODO: Add authentication check if DASHBOARD_AUTH=true
-  res.sendFile(path.join(__dirname, '../public/admin-dashboard-csp-fixed.html'));
+// Serve dashboard (with optional auth based on DASHBOARD_AUTH environment variable)
+const dashboardPath = path.join(__dirname, '../public/admin-dashboard-csp-fixed.html');
+
+app.get('/dashboard', (req, res, next) => {
+  if (process.env.DASHBOARD_AUTH === 'true') {
+    next();
+  } else {
+    res.sendFile(dashboardPath);
+  }
+}, authenticate, isAdmin, (req, res) => {
+  res.sendFile(dashboardPath);
 });
 
 // API Documentation endpoint
@@ -131,8 +138,6 @@ app.get('/api/health', (req, res) => {
 // Error handler
 app.use(errorHandler);
 
-import { initializeScheduler } from './jobs/trendScheduler';
-
 // Start server
 const startServer = async () => {
   await connectDB();
@@ -146,12 +151,95 @@ const startServer = async () => {
   });
 };
 
+// Map to track who is typing in which room
+const typingUsers = new Map<string, Set<string>>();
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   logger.info(`Client connected: ${socket.id}`);
 
+  // Chat Room Logic
+  socket.on('join_chat', async (data) => {
+    const { trendId, userName } = data;
+    if (!trendId) return;
+
+    socket.join(trendId);
+    logger.info(`Client ${socket.id} joined chat room: ${trendId}`);
+
+    try {
+      // Fetch recent message history dynamically
+      const ChatMessage = (await import('./models/ChatMessage')).default;
+      const history = await ChatMessage.find({ trendId })
+        .sort({ timestamp: 1 })
+        .limit(50);
+
+      socket.emit('chat_history', history);
+    } catch (err) {
+      logger.error(`Error fetching chat history for ${trendId}:`, err);
+    }
+  });
+
+  socket.on('leave_chat', (data) => {
+    const { trendId } = data;
+    if (trendId) {
+      socket.leave(trendId);
+      logger.info(`Client ${socket.id} left chat room: ${trendId}`);
+    }
+  });
+
+  socket.on('send_message', async (data) => {
+    const { trendId, text, senderName } = data;
+    if (!trendId || !text || !senderName) return;
+
+    try {
+      // Persist the message
+      const ChatMessage = (await import('./models/ChatMessage')).default;
+      const newMessage = await ChatMessage.create({
+        trendId,
+        text,
+        senderName,
+        timestamp: new Date()
+      });
+
+      // Broadcast to room
+      io.to(trendId).emit('receive_message', newMessage);
+    } catch (err) {
+      logger.error(`Error saving message for ${trendId}:`, err);
+    }
+  });
+
+  // Typing indicator logic
+  socket.on('typing_start', (data) => {
+    const { trendId, userName } = data;
+    if (!trendId || !userName) return;
+
+    if (!typingUsers.has(trendId)) {
+      typingUsers.set(trendId, new Set());
+    }
+    typingUsers.get(trendId)!.add(userName);
+
+    socket.to(trendId).emit('typing_status', {
+      isTyping: true,
+      users: Array.from(typingUsers.get(trendId)!)
+    });
+  });
+
+  socket.on('typing_end', (data) => {
+    const { trendId, userName } = data;
+    if (!trendId || !userName) return;
+
+    if (typingUsers.has(trendId)) {
+      typingUsers.get(trendId)!.delete(userName);
+      socket.to(trendId).emit('typing_status', {
+        isTyping: typingUsers.get(trendId)!.size > 0,
+        users: Array.from(typingUsers.get(trendId)!)
+      });
+    }
+  });
+
   socket.on('disconnect', () => {
     logger.info(`Client disconnected: ${socket.id}`);
+    // Optional: cleanup typing states
   });
 });
 

@@ -172,4 +172,114 @@ class AppTheme {
       unselectedItemColor: Colors.grey,
     ),
   );
+
+  // --- NEW THEMES ---
+
+  static ThemeData get oceanTheme => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: const Color(0xFF040B16), // Deep Navy
+    colorScheme: const ColorScheme.dark(
+      primary: Color(0xFF00FFD1), // Neon Cyan
+      secondary: Color(0xFF3B82F6), // Blue
+      tertiary: Color(0xFF8B5CF6), // Purple
+      surface: Color(0xFF0A1526), // Dark Blue Surface
+      surfaceContainerHighest: Color(0xFF13233F),
+      onSurface: Colors.white,
+      onSurfaceVariant: Color(0xFF94A3B8),
+      background: Color(0xFF040B16),
+      onBackground: Colors.white,
+    ),
+    textTheme: lightTheme.textTheme.apply(
+      bodyColor: Colors.white,
+      displayColor: Colors.white,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF040B16),
+      elevation: 0,
+      centerTitle: true,
+      iconTheme: IconThemeData(color: Colors.white),
+    ),
+  );
+
+  static ThemeData get cyberpunkTheme => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: const Color(0xFF0D0221), // Very dark purple
+    colorScheme: const ColorScheme.dark(
+      primary: Color(0xFFFF00E6), // Hot Pink
+      secondary: Color(0xFF00FFFF), // Cyan
+      tertiary: Color(0xFFFDEB71), // Yellow
+      surface: Color(0xFF1A0B2E),
+      surfaceContainerHighest: Color(0xFF2D1B4E),
+      onSurface: Colors.white,
+      onSurfaceVariant: Color(0xFFAAA3B0),
+      background: Color(0xFF0D0221),
+      onBackground: Colors.white,
+    ),
+    textTheme: lightTheme.textTheme.apply(
+      bodyColor: Colors.white,
+      displayColor: Colors.white,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF0D0221),
+      elevation: 0,
+      centerTitle: true,
+      iconTheme: IconThemeData(color: Colors.white),
+    ),
+  );
+
+  static ThemeData get forestTheme => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: const Color(0xFF0B1410), // Very dark green
+    colorScheme: const ColorScheme.dark(
+      primary: Color(0xFF10B981), // Emerald
+      secondary: Color(0xFFD4AF37), // Gold
+      tertiary: Color(0xFFF59E0B), // Amber
+      surface: Color(0xFF13211A), // Dark leaf
+      surfaceContainerHighest: Color(0xFF1D3529),
+      onSurface: Color(0xFFECFDF5),
+      onSurfaceVariant: Color(0xFFA7F3D0),
+      background: Color(0xFF0B1410),
+      onBackground: Color(0xFFECFDF5),
+    ),
+    textTheme: lightTheme.textTheme.apply(
+      bodyColor: const Color(0xFFECFDF5),
+      displayColor: const Color(0xFFECFDF5),
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF0B1410),
+      elevation: 0,
+      centerTitle: true,
+      iconTheme: IconThemeData(color: Color(0xFFECFDF5)),
+    ),
+  );
+
+  static ThemeData get lavenderTheme => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: const Color(0xFFFDFBFE), // Very light purple tint
+    colorScheme: const ColorScheme.light(
+      primary: Color(0xFF8B5CF6), // Soft Purple
+      secondary: Color(0xFFEC4899), // Pink
+      tertiary: Color(0xFF6366F1), // Indigo
+      surface: Colors.white,
+      surfaceContainerHighest: Color(0xFFF3E8FF), // Light purple background for cards
+      onSurface: Color(0xFF1E1B4B),
+      onSurfaceVariant: Color(0xFF4C1D95),
+      background: Color(0xFFFDFBFE),
+      onBackground: Color(0xFF1E1B4B),
+    ),
+    textTheme: lightTheme.textTheme.apply(
+      bodyColor: const Color(0xFF1E1B4B),
+      displayColor: const Color(0xFF1E1B4B),
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFFFDFBFE),
+      elevation: 0,
+      centerTitle: true,
+      iconTheme: IconThemeData(color: Color(0xFF1E1B4B)),
+    ),
+  );
 }

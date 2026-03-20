@@ -85,18 +85,13 @@ class _CountryScreenState extends State<CountryScreen> {
               itemCount: _prefsService.selectedCountries.length,
               itemBuilder: (context, index) {
                 final country = _prefsService.selectedCountries.elementAt(index);
-                // Note: The original code used countryCode logic for fetching, but our current NewsFeed
-                // just takes a categoryName string. 
-                // In a production app, we would update NewsProvider to accept an object or query parameters
-                // allowing us to pass {country: 'US', category: 'top'}.
-                // For this refactor, we are simplifying to match the new architecture's current capabilities 
-                // (fetching by unique string key). We can extend the provider later.
-                
                 final flag = _countryFlags[country] ?? '🏳️';
                 final displayName = '$flag $country';
                 
+                // Just passing the country as override to independently fetch Top News from it
                 return NewsFeed(
                   categoryName: displayName,
+                  countryOverride: country,
                 );
               },
             ),

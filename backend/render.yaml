@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: trendx-backend
+    env: node
+    region: frankfurt # Or choose your preferred region
+    plan: free # or starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false # User must set this manually in Render dashboard
+      - key: JWT_SECRET
+        sync: false
+      # Add other required environment variables listed in .env.example

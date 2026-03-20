@@ -38,6 +38,10 @@ frontend_app/.flutter-plugins-dependencies
 frontend_app/.packages
 frontend_app/pubspec.lock
 frontend_app/lib/secrets.dart
+frontend_app/lib/secrets.dart.example
+**/google-services.json
+**/GoogleService-Info.plist
+android-signing/
 
 # Android related
 **/android/**/gradle-wrapper.jar

@@ -1,9 +1,13 @@
 import express from 'express';
 import * as adminController from '../controllers/adminController';
+import { authenticate, isAdmin } from '../middleware/auth';
 
 const router = express.Router();
 
-// Admin dashboard routes (no auth for demo - add auth middleware in production)
+// Admin dashboard routes (Secured)
+router.use(authenticate);
+router.use(isAdmin);
+
 router.get('/stats', adminController.getDashboardStats);
 router.get('/users', adminController.getUsersWithActivity);
 router.get('/users/:userId/activity', adminController.getUserActivityDetails);

@@ -249,6 +249,7 @@ class TrendCard extends StatelessWidget {
                   builder: (context) => ChatScreen(
                     trendTitle: trend.title,
                     trendPlatform: trend.platformName,
+                    trendId: '${trend.platformName}_${trend.title.hashCode}',
                   ),
                 ),
               );

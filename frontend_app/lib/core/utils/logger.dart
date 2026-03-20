@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
-import '../config/environment.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import '../../config/environment.dart';
 
 /// Centralized logging system with environment-aware output
 class Logger {
@@ -27,10 +29,14 @@ class Logger {
       }
     }
     
-    // In production, this would send to crash reporting service (Firebase Crashlytics)
-    // Will be implemented in Phase 2
-    if (EnvironmentConfig.isProduction && error != null) {
-      // TODO: Send to Crashlytics
+    // Send to Crashlytics in all environments except development
+    if (error != null && Firebase.apps.isNotEmpty) {
+      FirebaseCrashlytics.instance.recordError(
+        error,
+        stackTrace,
+        reason: message,
+        fatal: false, // Non-fatal by default
+      );
     }
   }
   

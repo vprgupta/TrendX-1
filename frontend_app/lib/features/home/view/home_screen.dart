@@ -6,9 +6,29 @@ import '../../trends/model/trend.dart';
 import '../../trends/view/trend_card.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/neon_text.dart';
+import '../../trends/service/trend_service.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late Future<List<Trend>> _trendsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTrends();
+  }
+
+  void _loadTrends() {
+    _trendsFuture = TrendService().fetchTrends(limit: 20).then((data) {
+      return data.map((json) => Trend.fromJson(json as Map<String, dynamic>)).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,14 +75,49 @@ class HomeScreen extends StatelessWidget {
           
           // 2. Content
           SafeArea(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: _dummyTrends.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 16),
-              itemBuilder: (context, index) {
-                return TrendCard(
-                  trend: _dummyTrends[index],
-                  index: index,
+            child: FutureBuilder<List<Trend>>(
+              future: _trendsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: AppTheme.cyan));
+                } else if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, color: AppTheme.pink, size: 48),
+                        const SizedBox(height: 16),
+                        Text('Error loading trends', style: TextStyle(color: Colors.white)),
+                        TextButton(
+                          onPressed: () => setState(() => _loadTrends()),
+                          child: const Text('Retry', style: TextStyle(color: AppTheme.cyan)),
+                        )
+                      ],
+                    ),
+                  );
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('No trends available', style: TextStyle(color: Colors.white)));
+                }
+
+                final trends = snapshot.data!;
+                return RefreshIndicator(
+                  color: AppTheme.cyan,
+                  backgroundColor: AppTheme.uberBlack,
+                  onRefresh: () async {
+                    setState(() => _loadTrends());
+                    await _trendsFuture;
+                  },
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: trends.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 16),
+                    itemBuilder: (context, index) {
+                      return TrendCard(
+                        trend: trends[index],
+                        index: index,
+                      );
+                    },
+                  ),
                 );
               },
             ),
@@ -81,7 +136,7 @@ class _AuroraBackground extends StatelessWidget {
     return Stack(
       children: [
         // Base Deep Background
-        Container(color: AppTheme.midnightBlue),
+        Container(color: AppTheme.uberBlack),
         
         // Glowing Orb 1 (Cyan)
         Positioned(
@@ -128,41 +183,7 @@ class _AuroraBackground extends StatelessWidget {
         ).animate(onPlay: (controller) => controller.repeat(reverse: true))
          .moveY(begin: 0, end: -50, duration: 5.seconds)
          .scaleXY(begin: 1, end: 1.3, duration: 6.seconds),
-
-         // Overlay Noise (Optional/Simulated)
-         // ...
       ],
     );
   }
 }
-
-// Mock Data
-final List<Trend> _dummyTrends = [
-  Trend(
-    id: '1',
-    title: 'SpaceX Starship Launch',
-    description: 'Starship successfully reaches orbit, marking a new era in space exploration. Global reactions flood social media.',
-    rank: 1,
-    popularity: 98,
-    duration: const Duration(hours: 4),
-    region: 'Global',
-  ),
-  Trend(
-    id: '2',
-    title: 'Bitcoin Halving Event',
-    description: 'Crypto markets surge as the highly anticipated Bitcoin halving event completes. Analysts predict major volatility.',
-    rank: 2,
-    popularity: 92,
-    duration: const Duration(hours: 12),
-    region: 'Finance',
-  ),
-  Trend(
-    id: '3',
-    title: 'Cyberpunk 2077 Update',
-    description: 'CD Projekt Red releases massive expansion phantom liberty, receiving critical acclaim.',
-    rank: 3,
-    popularity: 88,
-    duration: const Duration(days: 1),
-    region: 'Gaming',
-  ),
-];

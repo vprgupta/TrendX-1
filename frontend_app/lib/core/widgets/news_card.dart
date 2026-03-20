@@ -28,7 +28,7 @@ class NewsCard extends StatelessWidget {
     final DateTime pubDate = DateTime.tryParse(news.pubDate) ?? DateTime.now();
 
     return ScaleOnTap(
-      onTap: () => _showAIExplanation(context),
+      onTap: () => _launchURL(),
       child: Card(
         clipBehavior: Clip.antiAlias,
         elevation: Theme.of(context).cardTheme.elevation,
@@ -199,6 +199,7 @@ class NewsCard extends StatelessWidget {
                   builder: (context) => ChatScreen(
                     trendTitle: news.title,
                     trendPlatform: news.source,
+                    trendId: news.link,
                   ),
                 ),
               );

@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 /// Environment types for the application
 enum Environment { development, staging, production }
 
@@ -17,7 +20,8 @@ class EnvironmentConfig {
   static String get apiBaseUrl {
     switch (_current) {
       case Environment.development:
-        return 'http://10.22.31.214:3000';  // Local development server
+        // Use the laptop's current Wi-Fi IP for physical device debugging
+        return 'http://10.22.31.214:3000';
       case Environment.staging:
         return const String.fromEnvironment('STAGING_API_URL', 
                defaultValue: 'https://staging-api.trendx.app');

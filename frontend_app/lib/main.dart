@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'config/theme.dart';
 import 'config/environment.dart';
 import 'features/auth/view/auth_wrapper.dart';
@@ -11,6 +14,26 @@ import 'core/di/service_locator.dart'; // Import DI
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize Firebase (wrapped in try-catch to allow app startup even if config is missing)
+  try {
+    await Firebase.initializeApp();
+    
+    // Pass all uncaught "fatal" errors from the framework to Crashlytics
+    FlutterError.onError = (errorDetails) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+    };
+    
+    // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+    debugPrint('✅ Firebase initialized successfully');
+  } catch (e) {
+    debugPrint('⚠️ Firebase initialization failed or config missing: $e');
+    debugPrint('App will continue running without Crashlytics/Analytics.');
+  }
+  
   // Initialize environment configuration
   const envName = String.fromEnvironment('ENV', defaultValue: 'development');
   if (envName == 'production') {
@@ -20,7 +43,7 @@ void main() async {
   }
   
   setupLocator(); // Initialize DI
-  await SavedTrendsService().loadSavedTrends();
+  await getIt<SavedTrendsService>().loadSavedTrends();
   runApp(const ProviderScope(child: MyApp())); // Wrap with ProviderScope
 }
 
@@ -61,8 +84,8 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       title: 'TrendX',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: _themeService.lightTheme,
+      darkTheme: _themeService.darkTheme,
       themeMode: _themeService.themeMode,
       home: AnnotatedRegion<SystemUiOverlayStyle>(
         value: _themeService.isDarkMode

@@ -39,29 +39,38 @@ class CacheService {
   }
 
   // --- News APIs ---
-  static Future<void> cacheNews(String category, List<NewsItem> items) async {
+  // Key includes BOTH category and country to avoid different countries overwriting each other's cache
+  static String _newsKey(String category, String country) =>
+      '$_newsPrefix${category.toLowerCase()}_${country.toLowerCase()}';
+
+  static Future<void> cacheNews(String category, String country, List<NewsItem> items) async {
     final prefs = await SharedPreferences.getInstance();
-    final key = '$_newsPrefix${category.toLowerCase()}';
+    final key = _newsKey(category, country);
+    // Deduplicate by title before saving
+    final seen = <String>{};
+    final deduped = items.where((item) => seen.add(item.title)).toList();
     final cacheData = {
-      'data': items.map((item) => item.toJson()).toList(),
+      'data': deduped.map((item) => item.toJson()).toList(),
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     };
     await prefs.setString(key, jsonEncode(cacheData));
   }
 
-  static Future<List<NewsItem>?> getCachedNews(String category) async {
+  static Future<List<NewsItem>?> getCachedNews(String category, String country) async {
     final prefs = await SharedPreferences.getInstance();
-    final key = '$_newsPrefix${category.toLowerCase()}';
+    final key = _newsKey(category, country);
     final cached = prefs.getString(key);
     
     if (cached == null) return null;
     
     try {
       final cacheData = jsonDecode(cached);
-      // We can check expiry here if we want, but usually for news, showing old news is better than error
-      // Let's implement a soft expiry (if older than 24 hours, maybe clear)
-      // but for now, just return what we have if network fails
-      
+      final timestamp = DateTime.fromMillisecondsSinceEpoch(cacheData['timestamp']);
+      // Expire after 60 minutes to always show fresh country-specific news
+      if (DateTime.now().difference(timestamp) > _cacheExpiry) {
+        await prefs.remove(key);
+        return null;
+      }
       final List<dynamic> jsonList = cacheData['data'];
       return jsonList.map((json) => NewsItem.fromJson(json)).toList();
     } catch (e) {
