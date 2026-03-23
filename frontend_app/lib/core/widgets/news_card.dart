@@ -39,20 +39,20 @@ class NewsCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(28),
               child: _buildHeader(colorScheme, context, pubDate),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 28),
               child: _buildContent(context),
             ),
             if (news.imageUrl != null && news.imageUrl!.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(28),
                 child: _buildMedia(context),
               ),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(28),
               child: _buildEngagement(colorScheme, context),
             ),
           ],
@@ -66,27 +66,43 @@ class NewsCard extends StatelessWidget {
       children: [
         Row(
           children: [
+            // Circular avatar with fallback
             CircleAvatar(
-              radius: 18,
-              backgroundImage: news.authorAvatarUrl != null
+              radius: 20,
+              backgroundColor: colorScheme.primary.withOpacity(0.12),
+              backgroundImage: (news.authorAvatarUrl != null && news.authorAvatarUrl!.isNotEmpty)
                   ? NetworkImage(news.authorAvatarUrl!)
                   : null,
-              backgroundColor: colorScheme.primaryContainer,
-              child: news.authorAvatarUrl == null
-                  ? Icon(Icons.person, size: 18, color: colorScheme.onPrimaryContainer)
+              onBackgroundImageError: (news.authorAvatarUrl != null && news.authorAvatarUrl!.isNotEmpty)
+                  ? (_, __) {}
+                  : null,
+              child: (news.authorAvatarUrl == null || news.authorAvatarUrl!.isEmpty)
+                  ? Icon(Icons.person, size: 20, color: colorScheme.primary)
                   : null,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    news.author ?? news.source,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
+                    news.source,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
                         ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  if (news.author != null)
+                    Text(
+                      news.author!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   Text(
                     _formatTimestamp(pubDate),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -133,14 +149,14 @@ class NewsCard extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
-          maxLines: 2,
+          maxLines: 8,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 12),
         Text(
           news.contentSnippet.isNotEmpty ? news.contentSnippet : news.content,
           style: Theme.of(context).textTheme.bodyMedium,
-          maxLines: 2,
+          maxLines: 9,
           overflow: TextOverflow.ellipsis,
         ),
       ],
@@ -181,7 +197,7 @@ class NewsCard extends StatelessWidget {
             context,
             'Explain',
             Icons.auto_awesome,
-            Colors.purple,
+            const Color(0xFF9E9E9E),
             () => _showAIExplanation(context),
           ),
         ),
@@ -191,7 +207,7 @@ class NewsCard extends StatelessWidget {
             context,
             'Chat',
             Icons.chat_bubble_outline,
-            Colors.blue,
+            const Color(0xFF9E9E9E),
             () {
               Navigator.push(
                 context,
@@ -202,20 +218,6 @@ class NewsCard extends StatelessWidget {
                     trendId: news.link,
                   ),
                 ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildActionButton(
-            context,
-            'Save',
-            Icons.bookmark_border,
-            Colors.orange,
-            () {
-               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Saved to bookmarks')),
               );
             },
           ),
@@ -298,5 +300,19 @@ class NewsCard extends StatelessWidget {
     } else {
       return 'Just now';
     }
+  }
+
+  IconData _getPlatformIcon(String source) {
+    final s = source.toLowerCase();
+    if (s.contains('country')) return Icons.flag_outlined;
+    if (s.contains('world')) return Icons.public_outlined;
+    if (s.contains('tech')) return Icons.computer_outlined;
+    if (s.contains('sport')) return Icons.sports_soccer_outlined;
+    if (s.contains('business') || s.contains('finance')) return Icons.business_outlined;
+    if (s.contains('health')) return Icons.health_and_safety_outlined;
+    if (s.contains('science')) return Icons.science_outlined;
+    if (s.contains('entertainment')) return Icons.movie_outlined;
+    if (s.contains('politics')) return Icons.account_balance_outlined;
+    return Icons.newspaper_outlined;
   }
 }

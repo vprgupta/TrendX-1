@@ -20,6 +20,8 @@ import logger, { morganStream } from './utils/logger';
 import analyticsRoutes from './routes/analyticsRoutes';
 import integrationRoutes from './routes/integrationRoutes';
 import * as newsController from './controllers/newsController';
+import * as trendingNewsController from './controllers/trendingNewsController';
+
 import { initializeScheduler } from './jobs/trendScheduler';
 
 dotenv.config();
@@ -51,7 +53,25 @@ const PORT = process.env.PORT || 3000;
 app.set('io', io);
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "cdn.jsdelivr.net",
+        "cdnjs.cloudflare.com",
+        "cdn.socket.io",
+      ],
+      scriptSrcAttr: ["'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+      imgSrc: ["'self'", "data:", "https:"],
+      fontSrc: ["'self'", "https:"],
+    },
+  },
+}));
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
@@ -64,7 +84,7 @@ const generalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5, // limit auth requests
+  max: 50, // limit auth requests
   message: { error: 'Too many auth attempts, please try again later' }
 });
 
@@ -89,8 +109,11 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/integrations', integrationRoutes);
 
-// News Route
+// News Routes
 app.get('/api/news', newsController.getNewsByCategory);
+app.get('/api/news/trending', trendingNewsController.getTrending);
+
+
 
 // Serve dashboard (with optional auth based on DASHBOARD_AUTH environment variable)
 const dashboardPath = path.join(__dirname, '../public/admin-dashboard-csp-fixed.html');

@@ -22,6 +22,7 @@ class _CustomizeNavbarScreenState extends State<CustomizeNavbarScreen> {
     'politics': {'label': 'Politics', 'icon': LucideIcons.landmark},
     'geopolitics': {'label': 'Geopolitics', 'icon': LucideIcons.globe},
     'local': {'label': 'Local News', 'icon': LucideIcons.mapPin},
+    'trending': {'label': '🔥 Trending', 'icon': LucideIcons.flame},
     'profile': {'label': 'Profile', 'icon': LucideIcons.user},
   };
 

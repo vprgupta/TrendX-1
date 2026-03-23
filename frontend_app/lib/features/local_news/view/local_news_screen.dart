@@ -14,6 +14,27 @@ class _LocalNewsScreenState extends State<LocalNewsScreen> {
   final PreferencesService _prefsService = getIt<PreferencesService>();
 
   @override
+  void initState() {
+    super.initState();
+    _prefsService.addListener(_onPrefsChanged);
+    _prefsService.loadCountryFilter();
+  }
+
+  @override
+  void dispose() {
+    _prefsService.removeListener(_onPrefsChanged);
+    super.dispose();
+  }
+
+  void _onPrefsChanged() => setState(() {});
+
+  String get _countryCode {
+    final filter = _prefsService.selectedCountryFilter;
+    if (filter.isEmpty || filter == 'Worldwide') return 'US';
+    return filter;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
@@ -22,25 +43,12 @@ class _LocalNewsScreenState extends State<LocalNewsScreen> {
           child: Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Local News',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  Text(
-                     _prefsService.selectedCountries.isNotEmpty 
-                        ? _prefsService.selectedCountries.first 
-                        : 'Your Region',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.secondary,
-                    ),
-                  ),
-                ],
+              child: Text(
+                'Local News',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ),
@@ -48,10 +56,11 @@ class _LocalNewsScreenState extends State<LocalNewsScreen> {
       ),
       body: ListView.builder(
         padding: const EdgeInsets.only(bottom: 100),
-        itemCount: 1, 
+        itemCount: 1,
         itemBuilder: (context, index) {
-          return const NewsFeed(
-            categoryName: 'local', // Fetch data for 'local'
+          return NewsFeed(
+            categoryName: 'local',
+            countryOverride: _countryCode,
           );
         },
       ),

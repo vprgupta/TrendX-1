@@ -23,18 +23,43 @@ final newsProvider = FutureProvider.family<List<NewsItem>, String>((ref, categor
 });
 
 // Provider specific to listing countries in the Country screen
+// Returns velocity-ranked stories for a specific country
 final countryNewsProvider = FutureProvider.family<List<NewsItem>, String>((ref, countryName) async {
   final newsService = getIt<NewsService>();
   
-  String countryCode = 'US';
-  if (countryName == 'India') countryCode = 'IN';
-  if (countryName == 'United States' || countryName == 'USA' || countryName == 'US') countryCode = 'US';
-  if (countryName == 'United Kingdom' || countryName == 'UK') countryCode = 'UK';
-  if (countryName == 'Japan') countryCode = 'JP';
-  if (countryName == 'Germany') countryCode = 'DE';
-  if (countryName == 'France') countryCode = 'FR';
-  if (countryName == 'Brazil') countryCode = 'BR';
-  if (countryName == 'Canada') countryCode = 'CA';
+  // Map full country names AND ISO codes to ISO country codes
+  const codeMap = {
+    // Full names
+    'India': 'IN',
+    'United States': 'US', 'USA': 'US',
+    'United Kingdom': 'GB', 'UK': 'GB',
+    'Japan': 'JP',
+    'Germany': 'DE',
+    'France': 'FR',
+    'Brazil': 'BR',
+    'Canada': 'CA',
+    'Australia': 'AU',
+    'China': 'CN',
+    'Russia': 'RU',
+    'Nepal': 'NP',
+    'Pakistan': 'PK',
+    'Bangladesh': 'BD',
+    'Sri Lanka': 'LK',
+    'Bhutan': 'BT',
+    'Maldives': 'MV',
+    'Afghanistan': 'AF',
+    'South Korea': 'KR',
+    // ISO codes pass through directly
+    'US': 'US', 'IN': 'IN', 'GB': 'GB', 'JP': 'JP',
+    'DE': 'DE', 'FR': 'FR', 'BR': 'BR', 'CA': 'CA',
+    'AU': 'AU', 'NP': 'NP', 'PK': 'PK', 'BD': 'BD',
+    'LK': 'LK', 'BT': 'BT', 'MV': 'MV', 'AF': 'AF',
+    'KR': 'KR', 'CN': 'CN', 'RU': 'RU',
+  };
   
+  final countryCode = codeMap[countryName] ?? countryName;
+  
+  // Fetch top news for the country
   return await newsService.getNews('top', country: countryCode);
 });
+

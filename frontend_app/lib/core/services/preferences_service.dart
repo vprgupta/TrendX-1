@@ -108,11 +108,11 @@ class PreferencesService extends ChangeNotifier {
   }
 
   // Navbar Order Preference
-  List<String> _navbarOrder = ['platform', 'shorts', 'country', 'tech', 'profile'];
+  List<String> _navbarOrder = ['platform', 'trending', 'shorts', 'country', 'profile'];
   List<String> get navbarOrder => _navbarOrder;
   
   // Available modules for reference
-  // platform, shorts, country, tech, profile, politics, geopolitics, local
+  // platform, trending, shorts, country, tech, profile, politics, geopolitics, local
 
   Future<void> updateNavbarOrder(List<String> newOrder) async {
     _navbarOrder = newOrder;
@@ -125,6 +125,12 @@ class PreferencesService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final savedOrder = prefs.getStringList('navbarOrder');
     if (savedOrder != null && savedOrder.isNotEmpty) {
+      // Migrate: inject 'trending' after 'platform' if not already present
+      if (!savedOrder.contains('trending')) {
+        final idx = savedOrder.indexOf('platform');
+        savedOrder.insert(idx >= 0 ? idx + 1 : 1, 'trending');
+        await prefs.setStringList('navbarOrder', savedOrder);
+      }
       _navbarOrder = savedOrder;
     }
     notifyListeners();

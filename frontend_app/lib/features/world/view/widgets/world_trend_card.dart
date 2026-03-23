@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../model/world_trend.dart';
-import '../../../../core/services/saved_trends_service.dart';
 import '../../../../screens/ai_explanation_screen.dart';
 
 class WorldTrendCard extends StatelessWidget {
@@ -19,17 +18,17 @@ class WorldTrendCard extends StatelessWidget {
       child: InkWell(
         onTap: () => _handleTap(context),
         child: SizedBox(
-          height: 280,
+          height: 392,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(22),
                 child: _buildHeader(colorScheme, context),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
                   child: _buildContent(context),
                 ),
               ),
@@ -38,7 +37,7 @@ class WorldTrendCard extends StatelessWidget {
                   child: _buildImage(context),
                 ),
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(22),
                 child: _buildFooter(colorScheme, context),
               ),
             ],
@@ -68,38 +67,26 @@ class WorldTrendCard extends StatelessWidget {
       children: [
         Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: _getCategoryColor().withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                _getCategoryIcon(),
-                color: _getCategoryColor(),
-                size: 20,
-              ),
+            // Circular avatar with country flag or category icon
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: _getCategoryColor().withOpacity(0.12),
+              child: trend.countryFlag != null
+                  ? Text(trend.countryFlag!, style: const TextStyle(fontSize: 18))
+                  : Icon(_getCategoryIcon(), color: _getCategoryColor(), size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      if (trend.countryFlag != null) ...[
-                        Text(trend.countryFlag!, style: const TextStyle(fontSize: 16)),
-                        const SizedBox(width: 4),
-                      ],
-                      Expanded(
-                        child: Text(
-                          trend.region,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    trend.region,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     trend.category,
@@ -146,14 +133,14 @@ class WorldTrendCard extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
-          maxLines: 2,
+          maxLines: 4,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         Text(
           trend.description,
           style: Theme.of(context).textTheme.bodyMedium,
-          maxLines: 2,
+          maxLines: 4,
           overflow: TextOverflow.ellipsis,
         ),
       ],
@@ -203,33 +190,11 @@ class WorldTrendCard extends StatelessWidget {
             ),
           ],
         ),
-        Row(
-          children: [
-            Text(
-              _formatTimestamp(trend.timestamp),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(width: 8),
-            ListenableBuilder(
-              listenable: SavedTrendsService(),
-              builder: (context, _) {
-                final savedService = SavedTrendsService();
-                final isSaved = savedService.isTrendSaved(trend.id);
-                return IconButton(
-                  onPressed: () => savedService.toggleSavedTrend(trend.id),
-                  icon: Icon(
-                    isSaved ? Icons.bookmark : Icons.bookmark_border,
-                    color: isSaved ? colorScheme.primary : colorScheme.onSurfaceVariant,
-                    size: 20,
-                  ),
-                  constraints: const BoxConstraints(),
-                  padding: EdgeInsets.zero,
-                );
-              },
-            ),
-          ],
+        Text(
+          _formatTimestamp(trend.timestamp),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );

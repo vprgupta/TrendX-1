@@ -137,7 +137,7 @@ class _EnhancedTrendCardV2State extends State<EnhancedTrendCardV2>
               Expanded(
                 flex: 2,
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(17),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -146,7 +146,7 @@ class _EnhancedTrendCardV2State extends State<EnhancedTrendCardV2>
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
-                        maxLines: 2,
+                        maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
@@ -193,7 +193,7 @@ class _EnhancedTrendCardV2State extends State<EnhancedTrendCardV2>
         onTap: _onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(20),
@@ -208,8 +208,8 @@ class _EnhancedTrendCardV2State extends State<EnhancedTrendCardV2>
           child: Row(
             children: [
               Container(
-                width: 60,
-                height: 60,
+                width: 84,
+                height: 84,
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
@@ -219,7 +219,7 @@ class _EnhancedTrendCardV2State extends State<EnhancedTrendCardV2>
                     Center(
                       child: Icon(
                         Icons.play_circle_filled,
-                        size: 32,
+                        size: 45,
                         color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
@@ -255,7 +255,7 @@ class _EnhancedTrendCardV2State extends State<EnhancedTrendCardV2>
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
-                      maxLines: 2,
+                      maxLines: 4,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),

@@ -4,7 +4,6 @@ import '../../../../screens/youtube_player_screen.dart';
 import '../../../../screens/tiktok_player_screen.dart';
 import '../../../../screens/ai_explanation_screen.dart';
 import '../../../../features/chat/view/chat_screen.dart';
-import '../../../../core/services/saved_trends_service.dart';
 
 class TrendCard extends StatelessWidget {
   final PlatformTrend trend;
@@ -94,7 +93,16 @@ class TrendCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundImage: NetworkImage(trend.userAvatarUrl),
+              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+              backgroundImage: trend.userAvatarUrl.isNotEmpty
+                  ? NetworkImage(trend.userAvatarUrl)
+                  : null,
+              onBackgroundImageError: trend.userAvatarUrl.isNotEmpty
+                  ? (_, __) {}
+                  : null,
+              child: trend.userAvatarUrl.isEmpty
+                  ? Icon(Icons.person, size: 18, color: Theme.of(context).colorScheme.primary)
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -198,7 +206,7 @@ class TrendCard extends StatelessWidget {
             context,
             'Explain',
             Icons.auto_awesome,
-            Colors.purple,
+            const Color(0xFF9E9E9E),
             () {
               if (trend.platformName == 'YouTube' && trend.videoId != null) {
                 // For video content, maybe we still show AI explanation? 
@@ -234,14 +242,14 @@ class TrendCard extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        
+
         // Chat Button
         Expanded(
           child: _buildActionButton(
             context,
             'Chat',
             Icons.chat_bubble_outline,
-            Colors.blue,
+            const Color(0xFF9E9E9E),
             () {
               Navigator.push(
                 context,
@@ -253,58 +261,6 @@ class TrendCard extends StatelessWidget {
                   ),
                 ),
               );
-            },
-          ),
-        ),
-        const SizedBox(width: 8),
-
-        // Save Button
-        Expanded(
-          child: _buildActionButton(
-            context,
-            'Save',
-            Icons.bookmark_border,
-            Colors.orange,
-            () async {
-              try {
-                // Import SavedTrendsService - add at top of file
-                final SavedTrendsService savedService = SavedTrendsService();
-                
-                final trendData = {
-                  'id': '${trend.platformName}_${trend.title}_${DateTime.now().millisecondsSinceEpoch}',
-                  'title': trend.title,
-                  'platform': trend.platformName,
-                  'caption': trend.caption,
-                  'userName': trend.userName,
-                  'userAvatarUrl': trend.userAvatarUrl,
-                  'mediaUrl': trend.mediaUrl,
-                  'savedAt': DateTime.now().toIso8601String(),
-                };
-                
-                await savedService.saveTrend(trendData);
-                
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Saved: ${trend.title}'),
-                      duration: const Duration(seconds: 2),
-                      action: SnackBarAction(
-                        label: 'View',
-                        onPressed: () {
-                          // Navigate to saved trends
-                          Navigator.pushNamed(context, '/saved-trends');
-                        },
-                      ),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error saving trend: $e')),
-                  );
-                }
-              }
             },
           ),
         ),

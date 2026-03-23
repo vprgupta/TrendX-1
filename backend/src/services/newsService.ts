@@ -72,11 +72,43 @@ export const getWorldNews = async (category: string, country: string = 'us'): Pr
         newsItems = await getGoogleNewsRSS(category, country);
     }
 
-    if (newsItems.length > 0) {
-        newsCache.set(cacheKey, newsItems);
+    // ─── Velocity-style sort ─────────────────────────────────────────
+    // Score = recency_weight × source_weight
+    // Recency: exponential decay with 2-hour half-life → freshest stories rocket to the top
+    // Source: NewsData > Google RSS (NewsData queries are country-specific so they're more relevant)
+    const now = Date.now();
+    const scored = newsItems.map(item => {
+        const pubMs = new Date(item.pubDate).getTime();
+        const ageHours = (now - pubMs) / (1000 * 60 * 60);
+        // Half-life of 2 hours — a story published 2h ago scores 50% of a brand-new one
+        const recencyScore = Math.exp(-0.347 * ageHours); // ln(2)/2 ≈ 0.347
+        const sourceWeight = item.source === 'NewsData' ? 1.2 : 1.0;
+        return { item, score: recencyScore * sourceWeight };
+    });
+    scored.sort((a, b) => b.score - a.score);
+
+    // Deduplicate by title (skip items whose title overlaps >60% with already-seen ones)
+    const seen: string[] = [];
+    const deduped: NewsItem[] = [];
+    for (const { item } of scored) {
+        const titleWords = new Set(item.title.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+        const isDupe = seen.some(seenTitle => {
+            const seenWords = new Set(seenTitle.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+            let overlap = 0;
+            titleWords.forEach(w => { if (seenWords.has(w)) overlap++; });
+            return overlap >= 3;
+        });
+        if (!isDupe) {
+            deduped.push(item);
+            seen.push(item.title);
+        }
     }
 
-    return newsItems;
+    if (deduped.length > 0) {
+        newsCache.set(cacheKey, deduped);
+    }
+
+    return deduped;
 };
 
 /**
@@ -105,7 +137,7 @@ export const getTechNews = async (category: string): Promise<NewsItem[]> => {
         const feedUrl = techFeeds[category] || 'https://techcrunch.com/feed/';
         const feed = await parser.parseURL(feedUrl);
 
-        const newsItems = feed.items.slice(0, 20).map(item => ({
+        const newsItems = feed.items.slice(0, 50).map(item => ({
             title: item.title || 'No title',
             link: item.link || '#',
             pubDate: item.pubDate || new Date().toISOString(),
@@ -165,12 +197,21 @@ const getGoogleNewsRSS = async (category: string, country: string): Promise<News
         'US': 'https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en',
         'IN': 'https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en',
         'UK': 'https://news.google.com/rss?hl=en-GB&gl=GB&ceid=GB:en',
+        'GB': 'https://news.google.com/rss?hl=en-GB&gl=GB&ceid=GB:en',
         'CA': 'https://news.google.com/rss?hl=en-CA&gl=CA&ceid=CA:en',
         'AU': 'https://news.google.com/rss?hl=en-AU&gl=AU&ceid=AU:en',
         'JP': 'https://news.google.com/rss?hl=en-JP&gl=JP&ceid=JP:en',
         'DE': 'https://news.google.com/rss?hl=en-DE&gl=DE&ceid=DE:en',
         'FR': 'https://news.google.com/rss?hl=en-FR&gl=FR&ceid=FR:en',
-        'BR': 'https://news.google.com/rss?hl=en-BR&gl=BR&ceid=BR:en'
+        'BR': 'https://news.google.com/rss?hl=en-BR&gl=BR&ceid=BR:en',
+        'NP': 'https://news.google.com/rss?hl=en-NP&gl=NP&ceid=NP:ne',
+        'PK': 'https://news.google.com/rss?hl=en-PK&gl=PK&ceid=PK:en',
+        'BD': 'https://news.google.com/rss?hl=en-BD&gl=BD&ceid=BD:en',
+        'LK': 'https://news.google.com/rss?hl=en-LK&gl=LK&ceid=LK:en',
+        'KR': 'https://news.google.com/rss?hl=en-KR&gl=KR&ceid=KR:en',
+        'AF': 'https://news.google.com/rss?hl=en-AF&gl=AF&ceid=AF:en',
+        'BT': 'https://news.google.com/rss?hl=en-BT&gl=BT&ceid=BT:en',
+        'MV': 'https://news.google.com/rss?hl=en-MV&gl=MV&ceid=MV:en',
     };
 
     const topicFeeds: Record<string, string> = {
@@ -189,7 +230,10 @@ const getGoogleNewsRSS = async (category: string, country: string): Promise<News
 
     const normalizedCategory = category.toLowerCase();
 
-    if (normalizedCategory === 'general' || normalizedCategory === 'country') {
+    if (normalizedCategory === 'general' || normalizedCategory === 'country'
+        || normalizedCategory === 'top' || normalizedCategory === 'nation'
+        || normalizedCategory === 'local') {
+        // Use country-specific feed if available, else fall back to US
         feedUrl = countryFeeds[country.toUpperCase()] || countryFeeds['US'];
     } else if (topicFeeds[normalizedCategory]) {
         feedUrl = `https://news.google.com/rss/headlines/section/topic/${topicFeeds[normalizedCategory]}?hl=en-${country}&gl=${country}&ceid=${country}:en`;
@@ -252,8 +296,8 @@ const getHackerNewsTrending = async (subCategory: string = 'tech'): Promise<News
 
         const query = subCategory === 'tech' || subCategory === 'technology' ? '' : encodeURIComponent(subCategory);
         const url = query
-            ? `https://hn.algolia.com/api/v1/search?tags=story&query=${query}&hitsPerPage=20&numericFilters=points>50`
-            : `https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=20&numericFilters=points>100`;
+            ? `https://hn.algolia.com/api/v1/search?tags=story&query=${query}&hitsPerPage=50&numericFilters=points>50`
+            : `https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=50&numericFilters=points>100`;
 
         const response = await fetch(url, { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -298,7 +342,7 @@ const getTechRSSFallback = async (subCategory: string): Promise<NewsItem[]> => {
     try {
         const feedUrl = feeds[subCategory] || 'https://techcrunch.com/feed/';
         const feed = await parser.parseURL(feedUrl);
-        return feed.items.slice(0, 20).map(item => ({
+        return feed.items.slice(0, 50).map(item => ({
             title: item.title || 'No title',
             link: item.link || '#',
             pubDate: item.pubDate || new Date().toISOString(),
@@ -329,7 +373,7 @@ const getGuardianNews = async (section: string = 'world', country: string = 'US'
         guardianUrl.searchParams.append('section', 'world|politics|international');
         guardianUrl.searchParams.append('show-fields', 'thumbnail,trailText,byline');
         guardianUrl.searchParams.append('order-by', 'newest');
-        guardianUrl.searchParams.append('page-size', '20');
+        guardianUrl.searchParams.append('page-size', '50');
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);

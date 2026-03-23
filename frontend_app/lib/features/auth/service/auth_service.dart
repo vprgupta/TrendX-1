@@ -20,9 +20,9 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final user = User.fromJson(data['user']);
-        await _saveToken(data['token']);
+        await _saveToken(data['accessToken']);
         await _saveUser(user);
-        await SessionService.syncSession(data['token']);
+        await SessionService.syncSession(data['accessToken']);
         return user;
       } else {
         print('Login failed: ${response.statusCode} - ${response.body}');
@@ -44,9 +44,9 @@ class AuthService {
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         final user = User.fromJson(data['user']);
-        await _saveToken(data['token']);
+        await _saveToken(data['accessToken']);
         await _saveUser(user);
-        await SessionService.syncSession(data['token']);
+        await SessionService.syncSession(data['accessToken']);
         return user;
       } else {
         print('Register failed: ${response.statusCode} - ${response.body}');

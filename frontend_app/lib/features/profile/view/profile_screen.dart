@@ -2,11 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'preferences_screen.dart';
-import 'saved_trends_screen.dart';
 import 'edit_profile_screen.dart';
 import 'customize_navbar_screen.dart';
 import '../../auth/controller/auth_controller.dart';
 import '../../../core/services/profile_service.dart';
+import '../../../core/services/preferences_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback onThemeToggle;
@@ -25,6 +25,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateMixin {
   final _authController = AuthController();
   final _profileService = ProfileService();
+  final _prefsService = PreferencesService();
   final _imagePicker = ImagePicker();
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -33,6 +34,24 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   String? _profileName;
   String? _profileBio;
   String? _avatarPath;
+
+  final Map<String, String> _countries = {
+    'Worldwide': '🌍 Worldwide',
+    'US': '🇺🇸 United States',
+    'IN': '🇮🇳 India',
+    'PK': '🇵🇰 Pakistan',
+    'BD': '🇧🇩 Bangladesh',
+    'LK': '🇱🇰 Sri Lanka',
+    'NP': '🇳🇵 Nepal',
+    'GB': '🇬🇧 United Kingdom',
+    'CA': '🇨🇦 Canada',
+    'AU': '🇦🇺 Australia',
+    'DE': '🇩🇪 Germany',
+    'FR': '🇫🇷 France',
+    'JP': '🇯🇵 Japan',
+    'KR': '🇰🇷 South Korea',
+    'BR': '🇧🇷 Brazil',
+  };
 
   @override
   void initState() {
@@ -90,9 +109,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                     _buildAppBar(context, colorScheme),
                     const SizedBox(height: 32),
                     _buildProfileHeader(context, colorScheme),
-                    const SizedBox(height: 32),
-                    _buildStatsCards(context, colorScheme),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
+                    _buildCountrySection(context, colorScheme),
+                    const SizedBox(height: 24),
                     _buildMenuItems(context, colorScheme),
                   ],
                 ),
@@ -212,81 +231,77 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildStatsCards(BuildContext context, ColorScheme colorScheme) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(context, colorScheme, 'Following', '1.2k', Icons.people_outline, const Color(0xFF6366F1)),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(context, colorScheme, 'Bookmarks', '89', Icons.bookmark_outline, const Color(0xFFF59E0B)),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(context, colorScheme, 'Views', '5.4k', Icons.visibility_outlined, const Color(0xFF10B981)),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildStatCard(BuildContext context, ColorScheme colorScheme, String label, String value, IconData icon, Color accentColor) {
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 800),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, animationValue, child) {
-        return Transform.scale(
-          scale: 0.9 + (0.1 * animationValue),
-          child: Container(
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: colorScheme.shadow.withOpacity(0.08),
-                  blurRadius: 12,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: accentColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: accentColor,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    value,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+  Widget _buildCountrySection(BuildContext context, ColorScheme colorScheme) {
+    final current = _prefsService.selectedCountryFilter.isEmpty
+        ? 'Worldwide'
+        : _prefsService.selectedCountryFilter;
+    final displayName = _countries[current] ?? '🌍 $current';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
-        );
-      },
+        ],
+      ),
+      child: PopupMenuButton<String>(
+        onSelected: (value) {
+          _prefsService.updateCountryFilter(value);
+          setState(() {});
+        },
+        itemBuilder: (context) => _countries.entries.map((entry) {
+          return PopupMenuItem(
+            value: entry.key,
+            child: Text(entry.value),
+          );
+        }).toList(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.language_outlined, color: Colors.blue, size: 22),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Country / Region',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      displayName,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -295,7 +310,6 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       {'icon': Icons.tune, 'title': 'Preferences', 'subtitle': 'Customize your content preferences', 'color': Colors.purple, 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PreferencesScreen()))},
       {'icon': Icons.dashboard_customize_outlined, 'title': 'Customize Layout', 'subtitle': 'Reorder and toggle tabs', 'color': Colors.indigo, 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CustomizeNavbarScreen()))},
       {'icon': Icons.notifications_outlined, 'title': 'Notifications', 'subtitle': 'Manage alerts', 'color': Colors.blue, 'onTap': () {}},
-      {'icon': Icons.bookmark_outline, 'title': 'Saved Trends', 'subtitle': 'Your bookmarks', 'color': Colors.orange, 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedTrendsScreen()))},
       {'icon': Icons.help_outline, 'title': 'Help & Support', 'subtitle': 'Get assistance', 'color': Colors.green, 'onTap': () {}},
       {'icon': Icons.info_outline, 'title': 'About', 'subtitle': 'App information', 'color': Colors.teal, 'onTap': () {}},
     ];

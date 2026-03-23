@@ -7,6 +7,7 @@ import '../profile/view/profile_screen.dart';
 import '../politics/view/politics_screen.dart';
 import '../geopolitics/view/geopolitics_screen.dart';
 import '../local_news/view/local_news_screen.dart';
+import '../news/view/trending_news_screen.dart';
 import '../../screens/reels_screen.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/ui/glass_container.dart';
@@ -42,6 +43,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     'politics': NavItem(LucideIcons.landmark, 'Politics', Colors.red),
     'geopolitics': NavItem(LucideIcons.globe, 'Geopolitics', Colors.blue),
     'local': NavItem(LucideIcons.mapPin, 'Local', Colors.teal),
+    'trending': NavItem(LucideIcons.flame, 'Trending', const Color(0xFFFF6600)),
     'profile': NavItem(LucideIcons.user, 'Profile', AppTheme.neonRed),
   };
 
@@ -78,7 +80,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   
   List<String> get _currentOrder => _prefsService.navbarOrder.isNotEmpty 
       ? _prefsService.navbarOrder 
-      : ['platform', 'shorts', 'country', 'tech', 'profile'];
+      : ['platform', 'trending', 'shorts', 'country', 'profile'];
 
   List<Widget> get _screens {
     return _currentOrder.map((id) {
@@ -90,6 +92,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
          case 'politics': return const PoliticsScreen();
          case 'geopolitics': return const GeopoliticsScreen();
          case 'local': return const LocalNewsScreen();
+         case 'trending': return const TrendingNewsScreen();
          case 'profile': return ProfileScreen(onThemeToggle: widget.onThemeToggle, isDarkMode: widget.isDarkMode);
          default: return const SizedBox.shrink();
        }
