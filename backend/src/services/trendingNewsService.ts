@@ -2,9 +2,13 @@ import NodeCache from 'node-cache';
 import { getWorldNews, getNews, NewsItem } from './newsService';
 import { getGoogleTrends, scoreTitleAgainstTrends, TrendingKeyword } from './googleTrendsService';
 import { getRedditHotPosts, getSubredditsForCountry, getSubredditsForTopic, RedditPost } from './redditService';
+import { getBreakingNews } from './breakingNewsService';
 
-// Cache for 15 minutes
-const trendingCache = new NodeCache({ stdTTL: 900 });
+// Cache for 5 minutes — aligns with breaking news refresh rate
+const trendingCache = new NodeCache({ stdTTL: 300 });
+
+/** Articles older than this are considered stale and excluded */
+const MAX_AGE_HOURS = 6;
 
 export interface TrendingStory {
     id: string;
@@ -121,12 +125,13 @@ export const getTrendingNews = async (limit: number = 20, countryCode: string = 
     console.log(`🔍 [TrendEngine] Aggregating signals for ${countryCode}...`);
 
     // ── Fetch all signals in parallel ─────────────────────────────────────────
-    const [googleTrends, redditPosts, hnStories, guardianStories, worldStories] = await Promise.allSettled([
+    const [googleTrends, redditPosts, hnStories, guardianStories, worldStories, breakingStories] = await Promise.allSettled([
         getGoogleTrends(countryCode),
         getRedditHotPosts(getSubredditsForCountry(countryCode), 30),
         fetchHackerNewsTop(),
         fetchGuardianTop(),
         getWorldNews('general', countryCode.toLowerCase()),
+        getBreakingNews(),   // ← BBC / Reuters / AP / Al Jazeera — updates every 1-5 min
     ]);
 
     const trends: TrendingKeyword[] = googleTrends.status === 'fulfilled' ? googleTrends.value : [];
@@ -176,13 +181,29 @@ export const getTrendingNews = async (limit: number = 20, countryCode: string = 
         }
     }
 
+    // ⚡ Breaking News (BBC/Reuters/AP/Al Jazeera — freshest possible)
+    if (breakingStories.status === 'fulfilled') {
+        for (const item of breakingStories.value) {
+            pool.push({ item, source: item.source, hnPoints: 0, hnComments: 0 });
+        }
+    }
+
     // Reddit upvote map for articles that Reddit linked to
     const redditScoreMap = matchRedditToArticles(pool.map(p => p.item), reddit);
+
+    // ── Drop stale articles (older than MAX_AGE_HOURS) ────────────────────────
+    const cutoffMs = Date.now() - MAX_AGE_HOURS * 3_600_000;
+    const freshPool = pool.filter(raw => {
+        const pubMs = new Date(raw.item.pubDate).getTime();
+        if (isNaN(pubMs)) return false;          // no parseable date → exclude
+        return pubMs >= cutoffMs;                 // keep only fresh articles
+    });
+    console.log(`🗓️  [TrendEngine] ${pool.length} articles → ${freshPool.length} fresh (≤${MAX_AGE_HOURS}h old)`);
 
     // ── Deduplicate by title, merge sources ───────────────────────────────────
     const merged: Array<RawArticle & { sources: string[]; redditScore: number; googleTrendsScore: number }> = [];
 
-    for (const raw of pool) {
+    for (const raw of freshPool) {
         const existing = merged.find(m => isSimilar(m.item.title, raw.item.title));
         if (existing) {
             if (!existing.sources.includes(raw.source)) existing.sources.push(raw.source);
@@ -244,8 +265,10 @@ export const getTrendingNews = async (limit: number = 20, countryCode: string = 
 async function fetchHackerNewsTop(): Promise<Array<{ item: NewsItem; points: number; comments: number }>> {
     const controller = new AbortController();
     setTimeout(() => controller.abort(), 5000);
+    // Only fetch stories published in the last 48 hours
+    const cutoffSec = Math.floor((Date.now() - MAX_AGE_HOURS * 3_600_000) / 1000);
     const response = await fetch(
-        'https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=30&numericFilters=points>50',
+        `https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=30&numericFilters=points>30,created_at_i>${cutoffSec}`,
         { signal: controller.signal }
     );
     const data = await response.json();
@@ -265,7 +288,9 @@ async function fetchHackerNewsTop(): Promise<Array<{ item: NewsItem; points: num
 async function fetchGuardianTop(): Promise<NewsItem[]> {
     const controller = new AbortController();
     setTimeout(() => controller.abort(), 5000);
-    const url = 'https://content.guardianapis.com/search?api-key=test&section=world|technology|politics&show-fields=thumbnail,trailText,byline&order-by=newest&page-size=20';
+    // Only fetch articles from the last 48 hours
+    const fromDate = new Date(Date.now() - MAX_AGE_HOURS * 3_600_000).toISOString().split('T')[0];
+    const url = `https://content.guardianapis.com/search?api-key=test&section=world|technology|politics&show-fields=thumbnail,trailText,byline&order-by=newest&page-size=20&from-date=${fromDate}`;
     const response = await fetch(url, { signal: controller.signal });
     const data = await response.json();
     return (data.response?.results ?? []).map((a: any) => ({

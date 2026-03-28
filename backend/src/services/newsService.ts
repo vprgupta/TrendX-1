@@ -1,9 +1,10 @@
 import Parser from 'rss-parser';
 import axios from 'axios';
 import NodeCache from 'node-cache';
+import { getBreakingNews } from './breakingNewsService';
 
-// Initialize cache with 15 minutes TTL (900 seconds)
-const newsCache = new NodeCache({ stdTTL: 900 });
+// 5-minute cache — politics news must be fresh
+const newsCache = new NodeCache({ stdTTL: 300 });
 const parser = new Parser();
 
 export interface NewsItem {
@@ -171,9 +172,9 @@ export const getNews = async (category: string = 'world', country: string = 'US'
         return getHackerNewsTrending(raw);
     }
 
-    // 🌐 GEOPOLITICS / WORLD POLITICS — The Guardian: premium world journalism, free, no key
+    // 🌐 GEOPOLITICS / WORLD POLITICS — multi-source, up to 50 fresh global stories
     if (['geopolitics', 'politics', 'world politics', 'international'].includes(raw)) {
-        return getGuardianNews('world', country);
+        return getGlobalPoliticsNews(country);
     }
 
     // Everything else (local, top, sports, health etc.) — NewsData.io + Google RSS fallback
@@ -404,6 +405,149 @@ const getGuardianNews = async (section: string = 'world', country: string = 'US'
 
     // Fallback to Google News WORLD section
     return getGoogleNewsRSS('world', country);
+};
+
+/**
+ * 🌍 Global Politics Aggregator
+ * Pulls from 6 sources in parallel, filters to 6h, deduplicates, returns top 50
+ * freshest globally-trending political stories.
+ */
+const getGlobalPoliticsNews = async (country: string = 'US'): Promise<NewsItem[]> => {
+    const cacheKey = `politics_global_${country}`;
+    const cached = newsCache.get<NewsItem[]>(cacheKey);
+    if (cached) return cached;
+
+    const MAX_AGE_H = 6;
+    const cutoffMs = Date.now() - MAX_AGE_H * 3_600_000;
+
+    const isFresh = (pubDate: string) => {
+        const ms = new Date(pubDate).getTime();
+        return !isNaN(ms) && ms >= cutoffMs;
+    };
+
+    // ── Fetch all political sources in parallel ───────────────────────────────
+    const [guardianResult, breakingResult, alJazeeraResult, bbcWorldResult, googlePoliticsResult, reutersWorldResult] =
+        await Promise.allSettled([
+            // 1. The Guardian — world/politics/international (50 articles, ordered newest)
+            (async () => {
+                const url = new URL('https://content.guardianapis.com/search');
+                url.searchParams.set('api-key', 'test');
+                url.searchParams.set('section', 'world|politics|international|us-news|global-development');
+                url.searchParams.set('show-fields', 'thumbnail,trailText,byline');
+                url.searchParams.set('order-by', 'newest');
+                url.searchParams.set('page-size', '50');
+                const fromDate = new Date(cutoffMs).toISOString().split('T')[0];
+                url.searchParams.set('from-date', fromDate);
+                const ctrl = new AbortController();
+                setTimeout(() => ctrl.abort(), 5000);
+                const res = await fetch(url.toString(), { signal: ctrl.signal });
+                const data = await res.json();
+                return (data.response?.results ?? []).map((a: any): NewsItem => ({
+                    title: a.webTitle,
+                    link: a.webUrl,
+                    pubDate: a.webPublicationDate,
+                    content: a.fields?.trailText ?? '',
+                    contentSnippet: a.fields?.trailText ?? '',
+                    source: 'The Guardian',
+                    imageUrl: a.fields?.thumbnail,
+                    author: a.fields?.byline,
+                }));
+            })(),
+
+            // 2. Breaking news — Geopolitics category (BBC/Al Jazeera/Sky already filtered 6h)
+            getBreakingNews('Geopolitics'),
+
+            // 3. Al Jazeera RSS — direct
+            (async () => {
+                const feed = await parser.parseURL('https://www.aljazeera.com/xml/rss/all.xml');
+                return feed.items.map((item): NewsItem => ({
+                    title: item.title ?? '',
+                    link: item.link ?? '#',
+                    pubDate: item.pubDate ?? item.isoDate ?? '',
+                    content: item.contentSnippet ?? '',
+                    contentSnippet: item.contentSnippet ?? '',
+                    source: 'Al Jazeera',
+                    imageUrl: undefined,
+                    author: 'Al Jazeera',
+                }));
+            })(),
+
+            // 4. BBC World News RSS
+            (async () => {
+                const feed = await parser.parseURL('http://feeds.bbci.co.uk/news/world/rss.xml');
+                return feed.items.map((item): NewsItem => ({
+                    title: item.title ?? '',
+                    link: item.link ?? '#',
+                    pubDate: item.pubDate ?? item.isoDate ?? '',
+                    content: item.contentSnippet ?? '',
+                    contentSnippet: item.contentSnippet ?? '',
+                    source: 'BBC World News',
+                    imageUrl: undefined,
+                    author: 'BBC',
+                }));
+            })(),
+
+            // 5. Google News — World Politics topic
+            (async () => {
+                const feed = await parser.parseURL(
+                    `https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-${country}&gl=${country}&ceid=${country}:en`
+                );
+                return feed.items.map((item): NewsItem => ({
+                    title: item.title ?? '',
+                    link: item.link ?? '#',
+                    pubDate: item.pubDate ?? item.isoDate ?? '',
+                    content: item.contentSnippet ?? '',
+                    contentSnippet: item.contentSnippet ?? '',
+                    source: (item as any).creator ?? item.author ?? 'Google News',
+                    imageUrl: undefined,
+                    author: (item as any).creator ?? item.author,
+                }));
+            })(),
+
+            // 6. Sky News World RSS
+            (async () => {
+                const feed = await parser.parseURL('https://feeds.skynews.com/feeds/rss/world.xml');
+                return feed.items.map((item): NewsItem => ({
+                    title: item.title ?? '',
+                    link: item.link ?? '#',
+                    pubDate: item.pubDate ?? item.isoDate ?? '',
+                    content: item.contentSnippet ?? '',
+                    contentSnippet: item.contentSnippet ?? '',
+                    source: 'Sky News',
+                    imageUrl: undefined,
+                    author: 'Sky News',
+                }));
+            })(),
+        ]);
+
+    // ── Merge all results ─────────────────────────────────────────────────────
+    const all: NewsItem[] = [];
+    for (const r of [guardianResult, breakingResult, alJazeeraResult, bbcWorldResult, googlePoliticsResult, reutersWorldResult]) {
+        if (r.status === 'fulfilled') all.push(...r.value);
+    }
+
+    // ── Freshness filter ──────────────────────────────────────────────────────
+    const fresh = all.filter(item => isFresh(item.pubDate));
+
+    // ── Sort newest first ─────────────────────────────────────────────────────
+    fresh.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+
+    // ── Deduplicate by title (keep first/newest occurrence) ───────────────────
+    const seen = new Set<string>();
+    const deduped: NewsItem[] = [];
+    for (const item of fresh) {
+        const key = item.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 60);
+        if (!seen.has(key)) {
+            seen.add(key);
+            deduped.push(item);
+        }
+        if (deduped.length >= 50) break;  // cap at 50
+    }
+
+    console.log(`🌍 [Politics] ${all.length} total → ${fresh.length} fresh → ${deduped.length} after dedup`);
+
+    if (deduped.length > 0) newsCache.set(cacheKey, deduped);
+    return deduped;
 };
 
 /**

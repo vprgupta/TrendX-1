@@ -1,40 +1,14 @@
-import { fetchHtml, cleanText } from './scraperUtils';
+/**
+ * tiktokService.ts
+ *
+ * TikTok does not offer a public API or scrapable trending page.
+ * tokboard.com (previously used) no longer exists.
+ *
+ * Returning empty array so the scheduler does not waste time or
+ * produce error noise. TikTok trends will be excluded until an
+ * official API or valid third-party source becomes available.
+ */
 
-export const getTikTokTrends = async () => {
-    try {
-        const $ = await fetchHtml('https://tokboard.com/');
-        if (!$) return [];
-
-        const trends: any[] = [];
-
-        // Selectors based on Tokboard structure (hypothetical, needs verification)
-        $('.trend-item').each((i: number, el: any) => {
-            if (trends.length >= 10) return;
-
-            const name = cleanText($(el).find('.name').text());
-            const views = cleanText($(el).find('.views').text());
-
-            if (name) {
-                trends.push({
-                    name,
-                    views: parseInt(views.replace(/,/g, '')) || 0,
-                    description: 'Trending TikTok Sound/Hashtag'
-                });
-            }
-        });
-
-        // Fallback
-        if (trends.length === 0) {
-            return [
-                { name: 'Savage Love', views: 50000000, description: 'Viral Sound' },
-                { name: 'Renegade', views: 45000000, description: 'Viral Dance' },
-                { name: 'Say So', views: 40000000, description: 'Viral Dance' }
-            ];
-        }
-
-        return trends;
-    } catch (error) {
-        console.error('Error scraping TikTok trends:', error);
-        return [];
-    }
+export const getTikTokTrends = async (): Promise<any[]> => {
+    return [];
 };

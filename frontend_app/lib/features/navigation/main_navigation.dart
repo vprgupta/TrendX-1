@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../platform/view/platform_screen.dart';
 import '../country/view/country_screen.dart';
 import '../technology/view/technology_screen.dart';
@@ -13,8 +14,10 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/ui/glass_container.dart';
 import '../../config/theme.dart';
 import '../../core/services/preferences_service.dart';
+import '../../core/providers/connectivity_provider.dart';
+import '../../core/widgets/no_internet_banner.dart';
 
-class MainNavigation extends StatefulWidget {
+class MainNavigation extends ConsumerStatefulWidget {
   final VoidCallback onThemeToggle;
   final bool isDarkMode;
   
@@ -25,10 +28,11 @@ class MainNavigation extends StatefulWidget {
   });
 
   @override
-  State<MainNavigation> createState() => _MainNavigationState();
+  ConsumerState<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> with TickerProviderStateMixin {
+class _MainNavigationState extends ConsumerState<MainNavigation>
+    with TickerProviderStateMixin {
   int _currentIndex = 0;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
@@ -117,23 +121,47 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     }
   }
 
+  Widget _buildBody() {
+    final connectivity = ref.watch(connectivityProvider);
+
+    return connectivity.when(
+      // Still checking — show normal content (avoids flash on startup)
+      loading: () => IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
+      // Error resolving connectivity — treat as offline
+      error: (_, __) => NoInternetScreen(
+        onRetry: () => ref.invalidate(connectivityProvider),
+      ),
+      data: (isOnline) {
+        if (!isOnline) {
+          return NoInternetScreen(
+            onRetry: () => ref.invalidate(connectivityProvider),
+          );
+        }
+        return IndexedStack(
+          index: _currentIndex,
+          children: _screens,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true, // Allow body to extend behind the fab/bottom bar
       resizeToAvoidBottomInset: false,
       body: SafeArea(
-        bottom: false, // We'll handle bottom padding manually
-          child: IndexedStack(
-            index: _currentIndex,
-            children: _screens,
-          ),
+        bottom: false,
+        child: _buildBody(),
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.only(bottom: 16, left: 12, right: 12),
         child: GlassContainer(
           height: 80,
-          borderRadius: BorderRadius.circular(32), // Kept at 32 as requested (was 24)
+          borderRadius: BorderRadius.circular(32),
           opacity: Theme.of(context).brightness == Brightness.dark ? 0.15 : 0.9,
           color: Theme.of(context).brightness == Brightness.dark ? null : Colors.white,
           blur: 20,
@@ -144,7 +172,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               children: List.generate(_navItems.length, (index) {
                 final item = _navItems[index];
                 final isSelected = _currentIndex == index;
-                
+
                 return Expanded(
                   child: GestureDetector(
                     onTap: () => _onNavItemTapped(index),
@@ -153,38 +181,82 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          padding: const EdgeInsets.all(9),
-                          decoration: BoxDecoration(
-                            color: isSelected ? AppTheme.cyan.withOpacity(0.2) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(20), // Pill shape for icon
-                            border: isSelected ? Border.all(color: AppTheme.cyan.withOpacity(0.3), width: 1) : null,
-                          ),
-                          child: Icon(
-                            item.icon,
-                            // Keep icon color neutral but high contrast for premium feel
-                            color: Theme.of(context).brightness == Brightness.dark 
-                                ? (isSelected ? Colors.white : Colors.white60)
-                                : (isSelected ? Colors.black : Colors.black54),
-                            size: 24,
+                        // Icon with unique-color glow + scale animation
+                        AnimatedScale(
+                          scale: isSelected ? 1.18 : 1.0,
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutBack,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 280),
+                            curve: Curves.easeOutCubic,
+                            padding: const EdgeInsets.all(9),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? item.color.withOpacity(0.18)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(20),
+                              border: isSelected
+                                  ? Border.all(
+                                      color: item.color.withOpacity(0.4),
+                                      width: 1.2)
+                                  : null,
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: item.color.withOpacity(0.35),
+                                        blurRadius: 14,
+                                        spreadRadius: 0,
+                                      )
+                                    ]
+                                  : null,
+                            ),
+                            child: Icon(
+                              item.icon,
+                              color: isSelected
+                                  ? item.color
+                                  : (Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white54
+                                      : Colors.black45),
+                              size: 22,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 3),
+                        // Label fades in when active
                         AnimatedOpacity(
                           duration: const Duration(milliseconds: 200),
-                          opacity: isSelected ? 1.0 : 0.6,
+                          opacity: isSelected ? 1.0 : 0.5,
                           child: Text(
                             item.label,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontSize: 10,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                              color: Theme.of(context).brightness == Brightness.dark 
-                                  ? Colors.white 
-                                  : Colors.black,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  fontSize: 10,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w400,
+                                  color: isSelected
+                                      ? item.color
+                                      : (Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                             maxLines: 1,
+                          ),
+                        ),
+                        // Animated indicator dot
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          margin: const EdgeInsets.only(top: 2),
+                          width: isSelected ? 14 : 0,
+                          height: isSelected ? 3 : 0,
+                          decoration: BoxDecoration(
+                            color: item.color,
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
                       ],

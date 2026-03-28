@@ -5,16 +5,19 @@ let mongoServer: MongoMemoryServer;
 
 export const connectDB = async () => {
   try {
-    if (process.env.NODE_ENV === 'development' && !process.env.MONGODB_URI?.includes('mongodb+srv')) {
-      // Use in-memory database for development
-      mongoServer = await MongoMemoryServer.create();
-      const mongoUri = mongoServer.getUri();
+    const mongoUri = process.env.MONGODB_URI;
+
+    if (mongoUri) {
+      // Always use the provided URI (local or cloud) — data persists across restarts
       await mongoose.connect(mongoUri);
-      console.log('✅ Connected to In-Memory MongoDB');
+      console.log(`✅ MongoDB Connected: ${mongoUri.replace(/\/\/.*@/, '//<credentials>@')}`);
     } else {
-      // Use provided MongoDB URI (local or cloud)
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/trendx');
-      console.log('✅ MongoDB Connected');
+      // No URI configured — fall back to in-memory for convenience (dev only)
+      console.warn('⚠️  No MONGODB_URI set — using in-memory MongoDB. Data will NOT persist!');
+      mongoServer = await MongoMemoryServer.create();
+      const inMemoryUri = mongoServer.getUri();
+      await mongoose.connect(inMemoryUri);
+      console.log('🧪 Connected to In-Memory MongoDB (ephemeral)');
     }
   } catch (error) {
     console.error('❌ MongoDB Connection Error:', error);

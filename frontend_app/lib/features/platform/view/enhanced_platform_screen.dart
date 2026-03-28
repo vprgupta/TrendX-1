@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/widgets/shimmer_card.dart';
+import '../../../core/widgets/pull_to_refresh.dart';
 import '../../../core/services/preferences_service.dart';
 import '../controller/platform_controller.dart';
 import '../model/platform.dart';
@@ -117,7 +118,7 @@ class _EnhancedPlatformScreenState extends State<EnhancedPlatformScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      body: RefreshIndicator(
+      body: TrendXRefreshIndicator(
         onRefresh: _onRefresh,
         child: CustomScrollView(
           controller: _scrollController,

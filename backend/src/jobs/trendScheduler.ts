@@ -65,8 +65,8 @@ export const ingestAllTrends = async () => {
             getYouTubeTrends().catch(() => [])
         ]);
 
-        // World categories
-        const worldCategories = ['Science', 'Health', 'Sports', 'Environment', 'Politics', 'Entertainment'];
+        // World categories — must match NewsData.io supported categories
+        const worldCategories = ['Science', 'Health', 'Sports', 'Business', 'Politics', 'Technology'];
         const worldNews: any[][] = [];
         for (const cat of worldCategories) {
             try {

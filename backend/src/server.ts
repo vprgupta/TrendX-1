@@ -23,6 +23,7 @@ import * as newsController from './controllers/newsController';
 import * as trendingNewsController from './controllers/trendingNewsController';
 
 import { initializeScheduler } from './jobs/trendScheduler';
+import { startBreakingNewsRefresher } from './services/breakingNewsService';
 
 dotenv.config();
 validateEnv();
@@ -164,6 +165,9 @@ app.use(errorHandler);
 // Start server
 const startServer = async () => {
   await connectDB();
+
+  // Start real-time breaking news pre-fetcher (BBC/Reuters/AP — refreshes every 5 min)
+  startBreakingNewsRefresher();
 
   // Initialize background jobs with Socket.IO
   initializeScheduler(io);

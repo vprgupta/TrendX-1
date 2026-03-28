@@ -6,6 +6,7 @@ import '../../trends/model/trend.dart';
 import '../../trends/view/trend_card.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/neon_text.dart';
+import '../../../core/widgets/pull_to_refresh.dart';
 import '../../trends/service/trend_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -69,12 +70,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       body: Stack(
-        children: [
-          // 1. Animated Background
-          const _AuroraBackground(),
-          
-          // 2. Content
-          SafeArea(
+          children: [
+            // 1. Animated Background
+            const _AuroraBackground(),
+            
+            // 2. Content
+            SafeArea(
             child: FutureBuilder<List<Trend>>(
               future: _trendsFuture,
               builder: (context, snapshot) {
@@ -100,9 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
 
                 final trends = snapshot.data!;
-                return RefreshIndicator(
-                  color: AppTheme.cyan,
-                  backgroundColor: AppTheme.uberBlack,
+                return TrendXRefreshIndicator(
                   onRefresh: () async {
                     setState(() => _loadTrends());
                     await _trendsFuture;
