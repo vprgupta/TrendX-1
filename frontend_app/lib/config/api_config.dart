@@ -11,6 +11,7 @@ class ApiConfig {
   static String get authLogin => '$baseUrl/auth/login';
   static String get trends => '$baseUrl/trends';
   static String get users => '$baseUrl/users';
+  static String get aiExplain => '$baseUrl/ai/explain';
   
   // Request timeout
   static const Duration timeout = Duration(seconds: 30);

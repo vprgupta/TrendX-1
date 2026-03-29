@@ -417,7 +417,7 @@ const getGlobalPoliticsNews = async (country: string = 'US'): Promise<NewsItem[]
     const cached = newsCache.get<NewsItem[]>(cacheKey);
     if (cached) return cached;
 
-    const MAX_AGE_H = 6;
+    const MAX_AGE_H = 2;
     const cutoffMs = Date.now() - MAX_AGE_H * 3_600_000;
 
     const isFresh = (pubDate: string) => {

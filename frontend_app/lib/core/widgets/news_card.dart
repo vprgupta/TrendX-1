@@ -39,7 +39,42 @@ class NewsCard extends StatelessWidget {
     return '$minutes min read';
   }
 
-  bool get _hasImage => news.imageUrl != null && news.imageUrl!.isNotEmpty;
+  // The user explicitly commanded: "image section must be there"
+  // So we ALWAYS render the image block. If the URL is null, we show a default placeholder pattern.
+  bool get _hasImage => true;
+
+  String _getSummaryText() {
+    String text = news.contentSnippet.isNotEmpty ? news.contentSnippet : news.content;
+    // Strip rough HTML tags in case they exist
+    text = text.replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), ' ').trim();
+    // 500 characters usually fits nicely into 10-15 lines. We truncate gracefully.
+    if (text.length > 550) {
+      return text.substring(0, 550) + '...';
+    }
+    return text;
+  }
+
+  Widget _buildFallbackImage(ColorScheme cs) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            cs.primaryContainer,
+            cs.surfaceContainerHighest,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.newspaper_rounded,
+          size: 48,
+          color: cs.onSurfaceVariant.withOpacity(0.5),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,8 +153,8 @@ class NewsCard extends StatelessWidget {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.outfit(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
                   height: 1.35,
                   color: cs.onSurface,
                 ),
@@ -133,24 +168,26 @@ class NewsCard extends StatelessWidget {
                 borderRadius: BorderRadius.zero,
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: Image.network(
-                    news.imageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                    loadingBuilder: (_, child, progress) {
-                      if (progress == null) return child;
-                      return Container(
-                        color: Colors.grey.withOpacity(0.1),
-                        child: const Center(
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                  child: (news.imageUrl != null && news.imageUrl!.isNotEmpty)
+                      ? Image.network(
+                          news.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildFallbackImage(cs),
+                          loadingBuilder: (_, child, progress) {
+                            if (progress == null) return child;
+                            return Container(
+                              color: Colors.grey.withOpacity(0.1),
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      : _buildFallbackImage(cs),
                 ),
               ),
             ],
@@ -160,14 +197,13 @@ class NewsCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
                 child: Text(
-                  news.contentSnippet.isNotEmpty
-                      ? news.contentSnippet
-                      : news.content,
-                  maxLines: 9,
+                  _getSummaryText(),
+                  maxLines: 12,
                   overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.justify,
                   style: GoogleFonts.inter(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 15.0,
+                    fontWeight: FontWeight.w500, // Reduced from w600 because larger text shouldn't be too heavy
                     height: 1.55,
                     color: cs.onSurface.withOpacity(isDark ? 0.85 : 0.78),
                   ),

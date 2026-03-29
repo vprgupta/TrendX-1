@@ -17,31 +17,28 @@ class TechTrendCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: InkWell(
         onTap: () => _handleTap(context),
-        child: SizedBox(
-          height: 280,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: _buildHeader(colorScheme, context),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _buildHeader(colorScheme, context),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: _buildContent(context),
+            ),
+            if (trend.imageUrl != null)
+              SizedBox(
+                height: 180,
+                child: _buildImage(context),
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildContent(context),
-                ),
-              ),
-              if (trend.imageUrl != null)
-                Expanded(
-                  child: _buildImage(context),
-                ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: _buildFooter(colorScheme, context),
-              ),
-            ],
-          ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _buildFooter(colorScheme, context),
+            ),
+          ],
         ),
       ),
     );
@@ -140,9 +137,14 @@ class TechTrendCard extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          trend.description,
-          style: Theme.of(context).textTheme.bodyMedium,
-          maxLines: 2,
+          trend.description.length > 550 ? '${trend.description.substring(0, 550)}...' : trend.description,
+          textAlign: TextAlign.justify,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            fontSize: 15.0,
+            fontWeight: FontWeight.w500,
+            height: 1.55,
+          ),
+          maxLines: 12,
           overflow: TextOverflow.ellipsis,
         ),
       ],

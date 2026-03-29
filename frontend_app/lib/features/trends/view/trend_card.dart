@@ -142,11 +142,15 @@ class TrendCard extends StatelessWidget {
                   
                   Expanded(
                     child: Text(
-                      trend.description,
+                      trend.description.length > 550 ? '${trend.description.substring(0, 550)}...' : trend.description,
+                      textAlign: TextAlign.justify,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: Colors.white70,
+                        fontSize: 15.0,
+                        fontWeight: FontWeight.w500,
+                        height: 1.55,
                       ),
-                      maxLines: 4,
+                      maxLines: 12,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

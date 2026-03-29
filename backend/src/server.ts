@@ -19,6 +19,7 @@ import { authenticate, isAdmin } from './middleware/auth';
 import logger, { morganStream } from './utils/logger';
 import analyticsRoutes from './routes/analyticsRoutes';
 import integrationRoutes from './routes/integrationRoutes';
+import aiRoutes from './routes/ai';
 import * as newsController from './controllers/newsController';
 import * as trendingNewsController from './controllers/trendingNewsController';
 
@@ -109,6 +110,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/integrations', integrationRoutes);
+app.use('/api/ai', aiRoutes);
 
 // News Routes
 app.get('/api/news', newsController.getNewsByCategory);

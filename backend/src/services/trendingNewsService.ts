@@ -8,7 +8,7 @@ import { getBreakingNews } from './breakingNewsService';
 const trendingCache = new NodeCache({ stdTTL: 300 });
 
 /** Articles older than this are considered stale and excluded */
-const MAX_AGE_HOURS = 6;
+const MAX_AGE_HOURS = 2;
 
 export interface TrendingStory {
     id: string;

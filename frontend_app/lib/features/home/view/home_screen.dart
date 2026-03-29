@@ -86,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error_outline, color: AppTheme.pink, size: 48),
+                        const Icon(Icons.error_outline, color: AppTheme.neonRed, size: 48),
                         const SizedBox(height: 16),
                         Text('Error loading trends', style: TextStyle(color: Colors.white)),
                         TextButton(

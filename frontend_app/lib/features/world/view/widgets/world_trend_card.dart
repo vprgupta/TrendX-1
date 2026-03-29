@@ -138,9 +138,14 @@ class WorldTrendCard extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          trend.description,
-          style: Theme.of(context).textTheme.bodyMedium,
-          maxLines: 4,
+          trend.description.length > 550 ? '${trend.description.substring(0, 550)}...' : trend.description,
+          textAlign: TextAlign.justify,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            fontSize: 15.0,
+            fontWeight: FontWeight.w500,
+            height: 1.55,
+          ),
+          maxLines: 12,
           overflow: TextOverflow.ellipsis,
         ),
       ],

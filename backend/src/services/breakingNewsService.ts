@@ -25,7 +25,7 @@ const parser = new Parser({
 });
 
 /** Only news published within this many hours will be kept */
-export const BREAKING_MAX_AGE_HOURS = 6;
+export const BREAKING_MAX_AGE_HOURS = 2;
 
 /** Cache breaking news for 5 minutes — frequent refresh for near-real-time feed */
 const breakingCache = new NodeCache({ stdTTL: 300 });
