@@ -167,10 +167,7 @@ export const getNews = async (category: string = 'world', country: string = 'US'
     // Strip emojis and normalize the category string
     const raw = category.replace(/[^\w\s]/gi, '').trim().toLowerCase();
 
-    // 🔧 TECH — Hacker News: truly community-voted trending tech stories, no API key, no rate limit
-    if (['technology', 'tech', 'ai', 'mobile', 'web', 'cybersecurity', 'blockchain', 'cloud', 'robotics', 'iot'].includes(raw)) {
-        return getHackerNewsTrending(raw);
-    }
+    // Developer note: Hacker News was removed here because it does not provide imagery for tech articles.
 
     // 🌐 GEOPOLITICS / WORLD POLITICS — multi-source, up to 50 fresh global stories
     if (['geopolitics', 'politics', 'world politics', 'international'].includes(raw)) {
