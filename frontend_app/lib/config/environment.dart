@@ -20,8 +20,8 @@ class EnvironmentConfig {
   static String get apiBaseUrl {
     switch (_current) {
       case Environment.development:
-        // Use the laptop's current Wi-Fi IP for physical device debugging
-        return 'http://10.22.31.214:3000';
+        // Use the newly deployed render backend
+        return 'https://trendx-1.onrender.com';
       case Environment.staging:
         return const String.fromEnvironment('STAGING_API_URL', 
                defaultValue: 'https://staging-api.trendx.app');

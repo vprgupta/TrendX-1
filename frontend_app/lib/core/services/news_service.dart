@@ -7,7 +7,7 @@ import 'cache_service.dart';
 class NewsService {
   // Use your computer's IP address for physical device, or 10.0.2.2 for Android Emulator
   // static const String baseUrl = 'http://10.0.2.2:3000/api'; 
-  static const String baseUrl = 'http://10.22.31.214:3000/api'; 
+  static const String baseUrl = 'https://trendx-1.onrender.com/api'; 
 
   Future<List<NewsItem>> getNews(String category, {String country = 'US'}) async {
     try {

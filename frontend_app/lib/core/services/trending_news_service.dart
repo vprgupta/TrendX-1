@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/trending_story.dart';
 
 class TrendingNewsService {
-  static const String _baseUrl = 'http://10.22.31.214:3000/api';
+  static const String _baseUrl = 'https://trendx-1.onrender.com/api';
 
   // In-memory cache (trending data changes often — don't persist to SharedPrefs)
   static List<TrendingStory>? _memoryCache;

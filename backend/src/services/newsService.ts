@@ -296,9 +296,10 @@ const getHackerNewsTrending = async (subCategory: string = 'tech'): Promise<News
         const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         const query = subCategory === 'tech' || subCategory === 'technology' ? '' : encodeURIComponent(subCategory);
+        const oneWeekAgo = Math.floor((Date.now() - 7 * 24 * 3600 * 1000) / 1000);
         const url = query
-            ? `https://hn.algolia.com/api/v1/search?tags=story&query=${query}&hitsPerPage=50&numericFilters=points>50`
-            : `https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=50&numericFilters=points>100`;
+            ? `https://hn.algolia.com/api/v1/search_by_date?tags=story&query=${query}&hitsPerPage=50&numericFilters=points>20,created_at_i>${oneWeekAgo}`
+            : `https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=50&numericFilters=points>50,created_at_i>${oneWeekAgo}`;
 
         const response = await fetch(url, { signal: controller.signal });
         clearTimeout(timeoutId);
