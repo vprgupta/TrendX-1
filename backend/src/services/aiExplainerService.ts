@@ -27,7 +27,7 @@ export const explainTrendWithGemini = async (
         googleSearch: {}
       }],
       generationConfig: {
-        maxOutputTokens: 150,
+        maxOutputTokens: 800,
         temperature: 0.5
       }
     };
