@@ -20,11 +20,11 @@ export const explainTrendWithGemini = async (
     const payload = {
       contents: [{
         parts: [{
-          text: `You are an expert news analyst. Analyze the following ${platform} story and provide a structured explanation in ${language}.\n\nFormat your response EXACTLY like this (do NOT use markdown asterisks):\nTHE CORE STORY: (2 clear sentences summarizing exactly what happened)\nWHY IT MATTERS: (1-2 sentences explaining the broader impact or why people are talking about it)\nKEY CONTEXT: (1-2 sentences providing the necessary background so a beginner can understand it)\n\nKeep the tone objective, highly insightful, and free of jargon.\n\nTitle: "${title}"\nContent: "${content}"`
+          text: `You are an expert news analyst. Analyze the following ${platform} story and provide a comprehensive, detailed explanation in ${language}.\n\nFormat your response EXACTLY like this (do NOT use markdown asterisks):\nTHE CORE STORY:\n(A detailed paragraph explaining exactly what happened, giving specific details and context.)\n\nWHY IT MATTERS:\n(A deep analysis in 1-2 paragraphs explaining the broader impact, why the internet is reacting to this, and potential consequences.)\n\nKEY CONTEXT & BACKGROUND:\n(A rich historical or factual background section so anyone completely unfamiliar with the topic can fully understand the nuances.)\n\nKeep the tone objective, highly insightful, and free of jargon.\n\nTitle: "${title}"\nContent: "${content}"`
         }]
       }],
       generationConfig: {
-        maxOutputTokens: 450,
+        maxOutputTokens: 900,
         temperature: 0.7
       }
     };
