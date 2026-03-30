@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../config/theme.dart';
 import 'theme_selection_screen.dart';
 
@@ -13,20 +13,21 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushNotifications = true;
 
-  void _showInfoDialog(String title, String content) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+  // Replace with your actual hosted privacy policy URL
+  static const _privacyPolicyUrl =
+      'https://vprgupta.github.io/trendx-privacy-policy';
+  static const _termsOfServiceUrl =
+      'https://vprgupta.github.io/trendx-privacy-policy#terms';
+
+  Future<void> _launchUrl(String urlString) async {
+    final uri = Uri.parse(urlString);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open the page.')),
+        );
+      }
+    }
   }
 
   @override
@@ -107,22 +108,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: const Text('1.0.0'),
               ),
               ListTile(
-                leading: Icon(Icons.privacy_tip, color: AppTheme.cyan),
+                leading: const Icon(Icons.privacy_tip, color: AppTheme.cyan),
                 title: const Text('Privacy Policy'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showInfoDialog(
-                  'Privacy Policy',
-                  'TrendX respects your privacy. We do not sell your personal data. All trending information is aggregated from public sources.',
-                ),
+                trailing: const Icon(Icons.open_in_new, size: 18),
+                onTap: () => _launchUrl(_privacyPolicyUrl),
               ),
               ListTile(
-                leading: Icon(Icons.description, color: AppTheme.cyan),
+                leading: const Icon(Icons.description, color: AppTheme.cyan),
                 title: const Text('Terms of Service'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showInfoDialog(
-                  'Terms of Service',
-                  'By using TrendX, you agree to our terms of service regarding data usage and community standards.',
-                ),
+                trailing: const Icon(Icons.open_in_new, size: 18),
+                onTap: () => _launchUrl(_termsOfServiceUrl),
               ),
             ],
           ),

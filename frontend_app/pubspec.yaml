@@ -1,6 +1,6 @@
 name: trendx
-description: "A new Flutter project."
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+description: "TrendX — Track and explore what's trending worldwide across news, platforms, and social media."
+publish_to: 'none'
 
 version: 1.0.0+1
 
