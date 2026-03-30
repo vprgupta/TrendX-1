@@ -20,11 +20,8 @@ export const explainTrendWithGemini = async (
     const payload = {
       contents: [{
         parts: [{
-          text: `You are an expert news analyst. Use your real-time search capabilities to find the latest context regarding the following ${platform} trend. Then, provide a single, complete explanation in ${language}.\n\nYour entire response must be approximately 50 words long. It should read like a highly optimized, complete news snippet containing the full story: "Who, what, when, where, and why it matters." Do not use any headings or bullet points.\n\nTitle: "${title}"\nContent: "${content}"`
+          text: `You are an expert news analyst. Based on the following ${platform} trend, provide a single, complete explanation in ${language}.\n\nYour entire response must be approximately 50 words long. It should read like a highly optimized, complete news snippet containing the full story: "Who, what, when, where, and why it matters." Do not use any headings or bullet points.\n\nTitle: "${title}"\nContent: "${content}"`
         }]
-      }],
-      tools: [{
-        googleSearch: {}
       }],
       generationConfig: {
         maxOutputTokens: 800,
