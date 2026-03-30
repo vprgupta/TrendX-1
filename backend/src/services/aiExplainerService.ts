@@ -34,7 +34,7 @@ export const explainTrendWithGemini = async (
 
     const response = await axios.post(`${GEMINI_API_URL}?key=${apiKey}`, payload, {
       headers: { 'Content-Type': 'application/json' },
-      timeout: 10000 // 10 seconds
+      timeout: 30000 // Increased to 30 seconds for LLM generation
     });
 
     if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
