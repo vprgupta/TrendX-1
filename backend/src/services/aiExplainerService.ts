@@ -20,12 +20,15 @@ export const explainTrendWithGemini = async (
     const payload = {
       contents: [{
         parts: [{
-          text: `You are an expert news analyst. Analyze the following ${platform} story and provide a comprehensive, detailed explanation in ${language}.\n\nFormat your response EXACTLY like this (do NOT use markdown asterisks):\nTHE CORE STORY:\n(A detailed paragraph explaining exactly what happened, giving specific details and context.)\n\nWHY IT MATTERS:\n(A deep analysis in 1-2 paragraphs explaining the broader impact, why the internet is reacting to this, and potential consequences.)\n\nKEY CONTEXT & BACKGROUND:\n(A rich historical or factual background section so anyone completely unfamiliar with the topic can fully understand the nuances.)\n\nKeep the tone objective, highly insightful, and free of jargon.\n\nTitle: "${title}"\nContent: "${content}"`
+          text: `You are an expert news analyst. Use your real-time search capabilities to find the latest context regarding the following ${platform} trend. Then, provide a single, complete explanation in ${language}.\n\nYour entire response must be approximately 50 words long. It should read like a highly optimized, complete news snippet containing the full story: "Who, what, when, where, and why it matters." Do not use any headings or bullet points.\n\nTitle: "${title}"\nContent: "${content}"`
         }]
       }],
+      tools: [{
+        googleSearch: {}
+      }],
       generationConfig: {
-        maxOutputTokens: 900,
-        temperature: 0.7
+        maxOutputTokens: 150,
+        temperature: 0.5
       }
     };
 
