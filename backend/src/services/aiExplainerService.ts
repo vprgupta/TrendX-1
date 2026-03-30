@@ -45,11 +45,16 @@ export const explainTrendWithGemini = async (
     }
 
   } catch (error: any) {
-    logger.error('Gemini API Error in backend:', error.message);
-    return getFallbackExplanation(title, content, platform);
+    const errorMessage = error.response?.data?.error?.message || error.message;
+    logger.error('Gemini API Error in backend:', errorMessage);
+    return getFallbackExplanation(title, content, platform, errorMessage);
   }
 };
 
-const getFallbackExplanation = (title: string, content: string, platform: string): string => {
-  return `This trending ${platform} post "${title}" has gained significant attention due to its relevance and engagement with users. The content resonates with current interests, spreading through platform algorithms, user shares, and viral mechanisms. It reflects timely topics that the community finds valuable and entertaining.`;
+const getFallbackExplanation = (title: string, content: string, platform: string, error?: string): string => {
+  const base = `This trending ${platform} post "${title}" has gained significant attention due to its relevance and engagement with users. The content resonates with current interests, spreading through platform algorithms, user shares, and viral mechanisms. It reflects timely topics that the community finds valuable and entertaining.`;
+  if (error) {
+    return `${base}\n\n[DEBUG ERROR: ${error}]`;
+  }
+  return base;
 };
