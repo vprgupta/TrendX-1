@@ -42,15 +42,25 @@ function detectSentiment(title: string, redditComments: number, redditScore: num
 }
 
 // ─── Category detection ───────────────────────────────────────────────────────
-const TECH_KW = ['ai', 'software', 'tech', 'openai', 'google', 'apple', 'api', 'chip', 'cyber', 'crypto'];
-const GEO_KW = ['war', 'nato', 'sanction', 'election', 'minister', 'military', 'president', 'embassy', 'conflict'];
-const HEALTH_KW = ['vaccine', 'cancer', 'drug', 'fda', 'pandemic', 'virus', 'treatment', 'hospital'];
+const TECH_KW = ['ai', 'software', 'tech', 'openai', 'google', 'apple', 'api', 'chip', 'cyber', 'quantum', 'developer', 'startup'];
+const POL_KW = ['war', 'nato', 'sanction', 'election', 'minister', 'military', 'president', 'embassy', 'conflict', 'senate', 'government', 'policy', 'laws'];
+const HEALTH_KW = ['vaccine', 'cancer', 'drug', 'fda', 'pandemic', 'virus', 'treatment', 'hospital', 'health', 'medical', 'biotech'];
+const FINANCE_KW = ['stocks', 'market', 'economy', 'finance', 'fed', 'inflation', 'bank', 'bitcoin', 'crypto', 'trading', 'investing', 'revenue', 'profit'];
+const SCIENCE_KW = ['space', 'astronomy', 'physics', 'dna', 'science', 'nature', 'mars', 'nasa', 'astrophysics', 'evolution', 'archaeology'];
+const BREAKTHROUGH_KW = ['breakthrough', 'discovery', 'innovation', 'revolutionary', 'pioneering', 'milestone', 'new evidence'];
 
 function detectCategory(title: string, sources: string[]): string {
     const lower = title.toLowerCase();
+    
+    // Check for high-impact breakthroughs first
+    if (BREAKTHROUGH_KW.some(k => lower.includes(k))) return 'Breakthrough';
+    
     if (sources.includes('Hacker News') || TECH_KW.some(k => lower.includes(k))) return 'Technology';
-    if (sources.includes('The Guardian') || GEO_KW.some(k => lower.includes(k))) return 'Geopolitics';
+    if (POL_KW.some(k => lower.includes(k))) return 'Politics';
     if (HEALTH_KW.some(k => lower.includes(k))) return 'Health';
+    if (FINANCE_KW.some(k => lower.includes(k))) return 'Finance';
+    if (SCIENCE_KW.some(k => lower.includes(k))) return 'Science';
+    
     return 'General';
 }
 
