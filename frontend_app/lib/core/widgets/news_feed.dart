@@ -7,6 +7,9 @@ import '../../features/news/providers/news_provider.dart';
 
 class NewsFeed extends ConsumerWidget {
   final String categoryName;
+  /// When set, fetches this specific category for the given country code (e.g. 'IN').
+  /// Uses the `countryNewsByCategoryProvider` which correctly routes category + country
+  /// to the backend, fixing the duplication bug where all sections showed 'top' news.
   final String? countryOverride;
 
   const NewsFeed({
@@ -17,9 +20,10 @@ class NewsFeed extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch the provider for this specific category or country
+    // When a country override is provided, use the composite key provider
+    // so each section gets its OWN category (Politics, Health, etc.) for that country.
     final newsAsync = countryOverride != null
-        ? ref.watch(countryNewsProvider(countryOverride!))
+        ? ref.watch(countryNewsByCategoryProvider('$countryOverride|$categoryName'))
         : ref.watch(newsProvider(categoryName));
 
     return Column(
@@ -43,7 +47,9 @@ class NewsFeed extends ConsumerWidget {
               children: [
                 Text('Error: $err', style: const TextStyle(color: Colors.red)),
                 TextButton(
-                  onPressed: () => ref.refresh(newsProvider(categoryName)),
+                  onPressed: () => countryOverride != null
+                      ? ref.refresh(countryNewsByCategoryProvider('$countryOverride|$categoryName'))
+                      : ref.refresh(newsProvider(categoryName)),
                   child: const Text('Retry'),
                 )
               ],
@@ -65,8 +71,6 @@ class NewsFeed extends ConsumerWidget {
     }
 
     final limit = categoryName.toLowerCase().contains('world') ? 50 : 15;
-    // Cast dynamic List to List<dynamic> or List<NewsItem> if generics lost, 
-    // but FutureProvider<List<NewsItem>> keeps type.
     final topNews = items.take(limit).toList(); 
 
     return topNews.asMap().entries.map((entry) {
@@ -91,6 +95,19 @@ class NewsFeed extends ConsumerWidget {
       case 'world news':
       case 'world':
         return Colors.blue;
+      case 'politics':
+        return const Color(0xFFE53935);
+      case 'business':
+      case 'finance':
+        return const Color(0xFF43A047);
+      case 'health':
+        return const Color(0xFF00ACC1);
+      case 'entertainment':
+        return const Color(0xFFAB47BC);
+      case 'sports':
+        return const Color(0xFFFF7043);
+      case 'science':
+        return const Color(0xFF1E88E5);
       case 'technology news':
       case 'technology':
         return Colors.deepPurple;
@@ -107,6 +124,19 @@ class NewsFeed extends ConsumerWidget {
       case 'world news':
       case 'world':
         return Icons.public;
+      case 'politics':
+        return Icons.account_balance;
+      case 'business':
+      case 'finance':
+        return Icons.trending_up;
+      case 'health':
+        return Icons.favorite;
+      case 'entertainment':
+        return Icons.movie;
+      case 'sports':
+        return Icons.sports_cricket;
+      case 'science':
+        return Icons.science;
       case 'technology news':
       case 'technology':
         return Icons.computer;

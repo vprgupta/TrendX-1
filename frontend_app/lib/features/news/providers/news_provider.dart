@@ -63,3 +63,13 @@ final countryNewsProvider = FutureProvider.family<List<NewsItem>, String>((ref, 
   return await newsService.getNews('top', country: countryCode);
 });
 
+/// Provider for Country section: fetches a SPECIFIC category for a specific country.
+/// Key format: "<countryCode>|<category>" e.g. "IN|Politics"
+/// This fixes the bug where all sections showed identical 'top' news.
+final countryNewsByCategoryProvider = FutureProvider.family<List<NewsItem>, String>((ref, key) async {
+  final newsService = getIt<NewsService>();
+  final parts = key.split('|');
+  final countryCode = parts[0]; // e.g. 'IN' or 'NP'
+  final category = parts.length > 1 ? parts[1] : 'top'; // e.g. 'Politics'
+  return await newsService.getNews(category, country: countryCode);
+});

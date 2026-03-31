@@ -5,7 +5,17 @@ import { getBreakingNews } from './breakingNewsService';
 
 // 5-minute cache — politics news must be fresh
 const newsCache = new NodeCache({ stdTTL: 300 });
-const parser = new Parser();
+const parser = new Parser({
+    timeout: 8000,
+    customFields: {
+        item: [
+            ['media:content', 'mediaContent', { keepArray: false }],
+            ['media:thumbnail', 'mediaThumbnail', { keepArray: false }],
+            ['media:group', 'mediaGroup', { keepArray: false }],
+            ['enclosure', 'enclosure', { keepArray: false }],
+        ],
+    },
+});
 
 export interface NewsItem {
     title: string;
@@ -145,8 +155,8 @@ export const getTechNews = async (category: string): Promise<NewsItem[]> => {
             content: item.content || item.contentSnippet || '',
             contentSnippet: item.contentSnippet || '',
             source: category,
-            imageUrl: extractImageFromContent(item.content),
-            author: item.creator || item.author
+            imageUrl: extractItemImage(item as any),
+            author: (item as any).creator || (item as any).author
         }));
 
         if (newsItems.length > 0) {
@@ -270,9 +280,9 @@ const getRegionalNews = async (category: string, countryCode: string): Promise<N
                     pubDate:         item.pubDate ?? item.isoDate ?? new Date().toISOString(),
                     content:         item.content ?? item.contentSnippet ?? '',
                     contentSnippet:  item.contentSnippet ?? '',
-                    source:          item.creator ?? (item as any).source?.title ?? r.value.title ?? 'Local',
-                    imageUrl:        extractImageFromContent(item.content) ?? (item as any).enclosure?.url,
-                    author:          item.creator ?? item.author,
+                    source:          (item as any).creator ?? (item as any).source?.title ?? r.value.title ?? 'Local',
+                    imageUrl:        extractItemImage(item as any),
+                    author:          (item as any).creator ?? (item as any).author,
                 });
             }
         }
@@ -410,9 +420,9 @@ const getGoogleNewsRSS = async (category: string, country: string): Promise<News
                 pubDate: item.pubDate || new Date().toISOString(),
                 content: item.content || '',
                 contentSnippet: item.contentSnippet || '',
-                source: item.creator || item.author || 'Google News',
-                imageUrl: imageUrl,
-                author: item.creator || item.author
+                source: (item as any).creator || (item as any).author || 'Google News',
+                imageUrl: imageUrl ?? extractItemImage(item as any),
+                author: (item as any).creator || (item as any).author
             };
         });
 
@@ -657,4 +667,36 @@ const extractImageFromContent = (content?: string): string | undefined => {
     if (!content) return undefined;
     const imgMatch = content.match(/<img[^>]+src="([^">]+)"/);
     return imgMatch ? imgMatch[1] : undefined;
+};
+
+/**
+ * Extract image from an RSS item - checks all possible image fields in priority order.
+ * Handles media:content, media:thumbnail, enclosure, and HTML img tags.
+ */
+const extractItemImage = (item: any): string | undefined => {
+    // 1. media:content (most common for Indian news sources like TOI, NDTV)
+    const mc = item.mediaContent;
+    if (mc) {
+        if (typeof mc === 'string') return mc;
+        if (mc.$ && mc.$.url) return mc.$.url;
+    }
+    // 2. media:thumbnail (used by many Wordpress sites)
+    const mt = item.mediaThumbnail;
+    if (mt) {
+        if (typeof mt === 'string') return mt;
+        if (mt.$ && mt.$.url) return mt.$.url;
+    }
+    // 3. media:group > media:content (some Nepali sources)
+    const mg = item.mediaGroup;
+    if (mg && mg['media:content']) {
+        const mgContent = mg['media:content'];
+        if (mgContent.$ && mgContent.$.url) return mgContent.$.url;
+    }
+    // 4. enclosure (used by BBC, etc.)
+    const enc = item.enclosure;
+    if (enc && enc.url && (enc.type?.startsWith('image') || enc.url.match(/\.(jpg|jpeg|png|webp)/i))) {
+        return enc.url;
+    }
+    // 5. Parse img src from HTML content (TOI fallback)
+    return extractImageFromContent(item.content);
 };
