@@ -64,7 +64,7 @@ class NewsFeed extends ConsumerWidget {
         return [const Padding(padding: EdgeInsets.all(16), child: Text("No news available."))];
     }
 
-    final limit = categoryName.toLowerCase().contains('world') ? 50 : 10;
+    final limit = categoryName.toLowerCase().contains('world') ? 50 : 15;
     // Cast dynamic List to List<dynamic> or List<NewsItem> if generics lost, 
     // but FutureProvider<List<NewsItem>> keeps type.
     final topNews = items.take(limit).toList(); 

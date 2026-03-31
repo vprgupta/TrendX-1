@@ -10,7 +10,7 @@ class PreferencesService extends ChangeNotifier {
   final Set<String> _selectedPlatforms = {'Instagram', 'Facebook', 'Twitter', 'TikTok', 'YouTube'};
   Set<String> get selectedPlatforms => _selectedPlatforms;
 
-  final Set<String> _selectedCountries = {'USA', 'India'};
+  final Set<String> _selectedCountries = {'India', 'Nepal'};
   Set<String> get selectedCountries => _selectedCountries;
 
   final Set<String> _selectedWorldCategories = {'Science', 'Space', 'Art'};
@@ -19,7 +19,7 @@ class PreferencesService extends ChangeNotifier {
   final Set<String> _selectedTechCategories = {'AI', 'Mobile'};
   Set<String> get selectedTechCategories => _selectedTechCategories;
 
-  String _selectedCountryFilter = 'Worldwide';
+  String _selectedCountryFilter = 'IN';
   String get selectedCountryFilter => _selectedCountryFilter;
 
   Future<void> updatePlatforms(Set<String> platforms) async {
@@ -103,7 +103,7 @@ class PreferencesService extends ChangeNotifier {
 
   Future<void> loadCountryFilter() async {
     final prefs = await SharedPreferences.getInstance();
-    _selectedCountryFilter = prefs.getString('selectedCountryFilter') ?? 'Worldwide';
+    _selectedCountryFilter = prefs.getString('selectedCountryFilter') ?? 'IN';
     notifyListeners();
   }
 

@@ -37,20 +37,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   final Map<String, String> _countries = {
     'Worldwide': '🌍 Worldwide',
-    'US': '🇺🇸 United States',
     'IN': '🇮🇳 India',
-    'PK': '🇵🇰 Pakistan',
-    'BD': '🇧🇩 Bangladesh',
-    'LK': '🇱🇰 Sri Lanka',
     'NP': '🇳🇵 Nepal',
-    'GB': '🇬🇧 United Kingdom',
-    'CA': '🇨🇦 Canada',
-    'AU': '🇦🇺 Australia',
-    'DE': '🇩🇪 Germany',
-    'FR': '🇫🇷 France',
-    'JP': '🇯🇵 Japan',
-    'KR': '🇰🇷 South Korea',
-    'BR': '🇧🇷 Brazil',
   };
 
   @override

@@ -13,7 +13,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   bool _isLoading = true;
   
   final List<String> _platforms = ['Instagram', 'Facebook', 'Twitter', 'YouTube', 'TikTok', 'LinkedIn', 'Reddit', 'Snapchat'];
-  final List<String> _countries = ['USA', 'India', 'UK', 'Japan', 'Germany', 'France', 'Brazil', 'Canada'];
+  final List<String> _countries = ['India', 'Nepal'];
   final List<String> _worldCategories = ['Science', 'Agriculture', 'Space', 'Art', 'Environment', 'Health', 'Politics', 'Sports', 'Entertainment'];
   final List<String> _techCategories = ['AI', 'Mobile', 'Web', 'Blockchain', 'IoT', 'Robotics', 'Cloud', 'Cybersecurity'];
 

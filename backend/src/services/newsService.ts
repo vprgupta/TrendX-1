@@ -161,23 +161,172 @@ export const getTechNews = async (category: string): Promise<NewsItem[]> => {
 };
 
 /**
+ * ─── India & Nepal regional feeds ───────────────────────────────────────────
+ * Reliable, always-free RSS sources organised by category.
+ * Each bucket is fetched in parallel and merged with the NewsData / Google RSS
+ * pipeline so that local stories are always represented alongside global ones.
+ */
+const REGIONAL_FEEDS: Record<string, Record<string, string[]>> = {
+    IN: {
+        politics:      [
+            'https://timesofindia.indiatimes.com/rssfeeds/4719148.cms',        // TOI Politics
+            'https://feeds.feedburner.com/ndtvnews-india-news',                 // NDTV India
+            'https://www.thehindu.com/news/national/?service=rss',             // The Hindu National
+            'https://indianexpress.com/section/india/feed/',                   // Indian Express India
+        ],
+        business:      [
+            'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms', // ET Markets
+            'https://www.livemint.com/rss/markets',                            // Livemint Markets
+            'https://feeds.feedburner.com/businessworld',                      // BusinessWorld
+            'https://www.business-standard.com/rss/latest.rss',               // Business Standard
+        ],
+        health:        [
+            'https://timesofindia.indiatimes.com/rssfeeds/3908999.cms',        // TOI Health
+            'https://www.thehindu.com/sci-tech/health/?service=rss',           // The Hindu Health
+            'https://www.healthline.com/rss/news',                             // Healthline (global)
+        ],
+        entertainment: [
+            'https://timesofindia.indiatimes.com/rssfeeds/contentid-1081479906831.cms', // TOI Bollywood
+            'https://feeds.feedburner.com/ndtvmoviesreviews',                  // NDTV Movies
+            'https://www.pinkvilla.com/feed',                                  // PinkVilla
+        ],
+        sports:        [
+            'https://timesofindia.indiatimes.com/rssfeeds/4719155.cms',        // TOI Sports
+            'https://feeds.feedburner.com/ndtvsports',                         // NDTV Sports
+            'https://www.espncricinfo.com/rss/content/story/feeds/0.xml',      // ESPNcricinfo
+        ],
+        science:       [
+            'https://www.thehindu.com/sci-tech/science/?service=rss',          // The Hindu Science
+            'https://timesofindia.indiatimes.com/rssfeeds/2647163.cms',        // TOI Science
+            'https://www.sciencedaily.com/rss/top/science.xml',               // ScienceDaily (global)
+        ],
+    },
+    NP: {
+        politics:      [
+            'https://kathmandupost.com/rss',                                   // Kathmandu Post
+            'https://myrepublica.nagariknetwork.com/feed/',                    // My Republica
+            'https://risingnepaldaily.com/feed',                              // Rising Nepal
+        ],
+        business:      [
+            'https://thehimalayantimes.com/category/business/feed/',           // Himalayan Times Business
+            'https://myrepublica.nagariknetwork.com/category/business/feed/',  // Republica Business
+            'https://kathmandupost.com/money/rss',                             // KPost Money
+        ],
+        health:        [
+            'https://thehimalayantimes.com/category/health/feed/',             // Himalayan Times Health
+            'https://kathmandupost.com/health/rss',                            // KPost Health
+            'https://www.healthline.com/rss/news',                             // Healthline fallback
+        ],
+        entertainment: [
+            'https://thehimalayantimes.com/category/entertainment/feed/',      // Himalayan Times Ent
+            'https://myrepublica.nagariknetwork.com/category/entertainment/feed/',
+        ],
+        sports:        [
+            'https://thehimalayantimes.com/category/sports/feed/',             // Himalayan Times Sports
+            'https://myrepublica.nagariknetwork.com/category/sports/feed/',
+        ],
+        science:       [
+            'https://kathmandupost.com/national/rss',                          // KPost general (science is sparse)
+            'https://www.sciencedaily.com/rss/top/science.xml',               // ScienceDaily global
+        ],
+    },
+};
+
+/**
+ * Fetch all regional RSS feeds for a given country and category in parallel,
+ * merge with NewsData/Google RSS, deduplicate and return top 15+ items.
+ */
+const getRegionalNews = async (category: string, countryCode: string): Promise<NewsItem[]> => {
+    const cc = countryCode.toUpperCase();
+    const cat = category.toLowerCase();
+
+    // Map loose category names to our keys
+    const catKey = (() => {
+        if (['politics','nation','top','local'].includes(cat)) return 'politics';
+        if (['business','finance','economy'].includes(cat)) return 'business';
+        if (['health','medicine'].includes(cat)) return 'health';
+        if (['entertainment','bollywood','movies'].includes(cat)) return 'entertainment';
+        if (['sports','cricket','football'].includes(cat)) return 'sports';
+        if (['science','tech','technology'].includes(cat)) return 'science';
+        return null;
+    })();
+
+    const cacheKey = `regional_${cc}_${catKey ?? cat}`;
+    const cached = newsCache.get<NewsItem[]>(cacheKey);
+    if (cached) return cached;
+
+    // 1. Fetch regional RSS if available
+    const regionalItems: NewsItem[] = [];
+    const feeds = (catKey && REGIONAL_FEEDS[cc]?.[catKey]) ?? [];
+
+    if (feeds.length > 0) {
+        const results = await Promise.allSettled(feeds.map(url => parser.parseURL(url)));
+        for (const r of results) {
+            if (r.status !== 'fulfilled') continue;
+            for (const item of r.value.items.slice(0, 20)) {
+                regionalItems.push({
+                    title:           item.title ?? 'Untitled',
+                    link:            item.link ?? '#',
+                    pubDate:         item.pubDate ?? item.isoDate ?? new Date().toISOString(),
+                    content:         item.content ?? item.contentSnippet ?? '',
+                    contentSnippet:  item.contentSnippet ?? '',
+                    source:          item.creator ?? (item as any).source?.title ?? r.value.title ?? 'Local',
+                    imageUrl:        extractImageFromContent(item.content) ?? (item as any).enclosure?.url,
+                    author:          item.creator ?? item.author,
+                });
+            }
+        }
+    }
+
+    // 2. Merge with NewsData / Google RSS pipeline for broader coverage
+    const [genericItems] = await Promise.allSettled([getWorldNews(catKey ?? cat, cc)]);
+    const generic = genericItems.status === 'fulfilled' ? genericItems.value : [];
+
+    const all = [...regionalItems, ...generic];
+
+    // 3. Sort by recency
+    all.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+
+    // 4. Deduplicate
+    const seen = new Set<string>();
+    const deduped: NewsItem[] = [];
+    for (const item of all) {
+        const key = item.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 70);
+        if (!seen.has(key)) {
+            seen.add(key);
+            deduped.push(item);
+        }
+        if (deduped.length >= 25) break;  // cap at 25 per category section
+    }
+
+    console.log(`🗺️  [Regional ${cc}/${catKey ?? cat}] ${regionalItems.length} local + ${generic.length} generic → ${deduped.length} final`);
+    if (deduped.length > 0) newsCache.set(cacheKey, deduped, 300); // 5-min cache
+    return deduped;
+};
+
+/**
  * Smart router — each category gets the best specialized source
  */
 export const getNews = async (category: string = 'world', country: string = 'US'): Promise<NewsItem[]> => {
     // Strip emojis and normalize the category string
     const raw = category.replace(/[^\w\s]/gi, '').trim().toLowerCase();
-
-    // Developer note: Hacker News was removed here because it does not provide imagery for tech articles.
+    const cc = country.toUpperCase();
 
     // 🌐 GEOPOLITICS / WORLD POLITICS — multi-source, up to 50 fresh global stories
     if (['geopolitics', 'politics', 'world politics', 'international', 'world', 'world news'].includes(raw)) {
         return getGlobalPoliticsNews(country);
     }
 
+    // 🇮🇳 🇳🇵  REGIONAL — use local source aggregator for India and Nepal
+    if (['IN', 'NP'].includes(cc)) {
+        return getRegionalNews(raw, cc);
+    }
+
     // Everything else (local, top, sports, health etc.) — NewsData.io + Google RSS fallback
     const targetCategory = raw === 'country' ? 'nation' : raw;
     return getWorldNews(targetCategory, country);
 };
+
 
 /**
  * Google News RSS fallback

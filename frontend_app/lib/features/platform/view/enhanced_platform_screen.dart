@@ -33,23 +33,8 @@ class _EnhancedPlatformScreenState extends State<EnhancedPlatformScreen>
 
   final Map<String, String> _countries = {
     'Worldwide': '🌍 Worldwide',
-    'US': '🇺🇸 United States',
     'IN': '🇮🇳 India',
-    'PK': '🇵🇰 Pakistan',
-    'BD': '🇧🇩 Bangladesh',
-    'LK': '🇱🇰 Sri Lanka',
     'NP': '🇳🇵 Nepal',
-    'BT': '🇧🇹 Bhutan',
-    'MV': '🇲🇻 Maldives',
-    'AF': '🇦🇫 Afghanistan',
-    'GB': '🇬🇧 United Kingdom',
-    'CA': '🇨🇦 Canada',
-    'AU': '🇦🇺 Australia',
-    'DE': '🇩🇪 Germany',
-    'FR': '🇫🇷 France',
-    'JP': '🇯🇵 Japan',
-    'KR': '🇰🇷 South Korea',
-    'BR': '🇧🇷 Brazil',
   };
 
   @override
