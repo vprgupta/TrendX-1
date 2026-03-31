@@ -170,7 +170,7 @@ export const getNews = async (category: string = 'world', country: string = 'US'
     // Developer note: Hacker News was removed here because it does not provide imagery for tech articles.
 
     // 🌐 GEOPOLITICS / WORLD POLITICS — multi-source, up to 50 fresh global stories
-    if (['geopolitics', 'politics', 'world politics', 'international'].includes(raw)) {
+    if (['geopolitics', 'politics', 'world politics', 'international', 'world', 'world news'].includes(raw)) {
         return getGlobalPoliticsNews(country);
     }
 
@@ -411,11 +411,12 @@ const getGuardianNews = async (section: string = 'world', country: string = 'US'
  * freshest globally-trending political stories.
  */
 const getGlobalPoliticsNews = async (country: string = 'US'): Promise<NewsItem[]> => {
-    const cacheKey = `politics_global_${country}`;
+    const cacheKey = `politics_global_v2_${country}`; // Bump cache version
     const cached = newsCache.get<NewsItem[]>(cacheKey);
     if (cached) return cached;
 
-    const MAX_AGE_H = 2;
+    // Use a wider window (24h) but sort strictly by recency
+    const MAX_AGE_H = 24;
     const cutoffMs = Date.now() - MAX_AGE_H * 3_600_000;
 
     const isFresh = (pubDate: string) => {
@@ -423,118 +424,40 @@ const getGlobalPoliticsNews = async (country: string = 'US'): Promise<NewsItem[]
         return !isNaN(ms) && ms >= cutoffMs;
     };
 
-    // ── Fetch all political sources in parallel ───────────────────────────────
-    const [guardianResult, breakingResult, alJazeeraResult, bbcWorldResult, googlePoliticsResult, reutersWorldResult] =
+    // ── Fetch high-volume and high-quality sources in parallel ────────────────
+    const [guardianResult, breakingResult, newsDataResult, googlePoliticsResult] =
         await Promise.allSettled([
-            // 1. The Guardian — world/politics/international (50 articles, ordered newest)
-            (async () => {
-                const url = new URL('https://content.guardianapis.com/search');
-                url.searchParams.set('api-key', 'test');
-                url.searchParams.set('section', 'world|politics|international|us-news|global-development');
-                url.searchParams.set('show-fields', 'thumbnail,trailText,byline');
-                url.searchParams.set('order-by', 'newest');
-                url.searchParams.set('page-size', '50');
-                const fromDate = new Date(cutoffMs).toISOString().split('T')[0];
-                url.searchParams.set('from-date', fromDate);
-                const ctrl = new AbortController();
-                setTimeout(() => ctrl.abort(), 5000);
-                const res = await fetch(url.toString(), { signal: ctrl.signal });
-                const data = await res.json();
-                return (data.response?.results ?? []).map((a: any): NewsItem => ({
-                    title: a.webTitle,
-                    link: a.webUrl,
-                    pubDate: a.webPublicationDate,
-                    content: a.fields?.trailText ?? '',
-                    contentSnippet: a.fields?.trailText ?? '',
-                    source: 'The Guardian',
-                    imageUrl: a.fields?.thumbnail,
-                    author: a.fields?.byline,
-                }));
-            })(),
+            // 1. The Guardian API (World/Politics)
+            getGuardianNews('world|politics|international', country),
 
-            // 2. Breaking news — Geopolitics category (BBC/Al Jazeera/Sky already filtered 6h)
-            getBreakingNews('Geopolitics'),
+            // 2. Breaking News Service (BBC, Sky, Al Jazeera, Reuters, AP, etc.)
+            getBreakingNews('World'),
 
-            // 3. Al Jazeera RSS — direct
-            (async () => {
-                const feed = await parser.parseURL('https://www.aljazeera.com/xml/rss/all.xml');
-                return feed.items.map((item): NewsItem => ({
-                    title: item.title ?? '',
-                    link: item.link ?? '#',
-                    pubDate: item.pubDate ?? item.isoDate ?? '',
-                    content: item.contentSnippet ?? '',
-                    contentSnippet: item.contentSnippet ?? '',
-                    source: 'Al Jazeera',
-                    imageUrl: undefined,
-                    author: 'Al Jazeera',
-                }));
-            })(),
+            // 3. NewsData.io (via our existing getWorldNews for high volume)
+            getWorldNews('world', country),
 
-            // 4. BBC World News RSS
-            (async () => {
-                const feed = await parser.parseURL('http://feeds.bbci.co.uk/news/world/rss.xml');
-                return feed.items.map((item): NewsItem => ({
-                    title: item.title ?? '',
-                    link: item.link ?? '#',
-                    pubDate: item.pubDate ?? item.isoDate ?? '',
-                    content: item.contentSnippet ?? '',
-                    contentSnippet: item.contentSnippet ?? '',
-                    source: 'BBC World News',
-                    imageUrl: undefined,
-                    author: 'BBC',
-                }));
-            })(),
-
-            // 5. Google News — World Politics topic
-            (async () => {
-                const feed = await parser.parseURL(
-                    `https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-${country}&gl=${country}&ceid=${country}:en`
-                );
-                return feed.items.map((item): NewsItem => ({
-                    title: item.title ?? '',
-                    link: item.link ?? '#',
-                    pubDate: item.pubDate ?? item.isoDate ?? '',
-                    content: item.contentSnippet ?? '',
-                    contentSnippet: item.contentSnippet ?? '',
-                    source: (item as any).creator ?? item.author ?? 'Google News',
-                    imageUrl: undefined,
-                    author: (item as any).creator ?? item.author,
-                }));
-            })(),
-
-            // 6. Sky News World RSS
-            (async () => {
-                const feed = await parser.parseURL('https://feeds.skynews.com/feeds/rss/world.xml');
-                return feed.items.map((item): NewsItem => ({
-                    title: item.title ?? '',
-                    link: item.link ?? '#',
-                    pubDate: item.pubDate ?? item.isoDate ?? '',
-                    content: item.contentSnippet ?? '',
-                    contentSnippet: item.contentSnippet ?? '',
-                    source: 'Sky News',
-                    imageUrl: undefined,
-                    author: 'Sky News',
-                }));
-            })(),
+            // 4. Google News RSS fallback (World topic)
+            getGoogleNewsRSS('world', country),
         ]);
 
     // ── Merge all results ─────────────────────────────────────────────────────
     const all: NewsItem[] = [];
-    for (const r of [guardianResult, breakingResult, alJazeeraResult, bbcWorldResult, googlePoliticsResult, reutersWorldResult]) {
+    for (const r of [guardianResult, breakingResult, newsDataResult, googlePoliticsResult]) {
         if (r.status === 'fulfilled') all.push(...r.value);
     }
 
-    // ── Freshness filter ──────────────────────────────────────────────────────
+    // ── Soft Freshness filter (24h) ───────────────────────────────────────────
     const fresh = all.filter(item => isFresh(item.pubDate));
 
     // ── Sort newest first ─────────────────────────────────────────────────────
+    // This naturally puts < 2h items at the top
     fresh.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
     // ── Deduplicate by title (keep first/newest occurrence) ───────────────────
     const seen = new Set<string>();
     const deduped: NewsItem[] = [];
     for (const item of fresh) {
-        const key = item.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 60);
+        const key = item.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 80);
         if (!seen.has(key)) {
             seen.add(key);
             deduped.push(item);
@@ -542,7 +465,7 @@ const getGlobalPoliticsNews = async (country: string = 'US'): Promise<NewsItem[]
         if (deduped.length >= 50) break;  // cap at 50
     }
 
-    console.log(`🌍 [Politics] ${all.length} total → ${fresh.length} fresh → ${deduped.length} after dedup`);
+    console.log(`🌍 [GlobalNews] ${all.length} raw → ${fresh.length} fresh → ${deduped.length} after dedup`);
 
     if (deduped.length > 0) newsCache.set(cacheKey, deduped);
     return deduped;

@@ -29,10 +29,10 @@ const List<CategoryStory> kCategoryStories = [
     filterKey: 'Technology',
   ),
   CategoryStory(
-    label: 'World',
+    label: 'World News',
     emoji: '🌍',
     gradient: [Color(0xFF10B981), Color(0xFF059669)],
-    filterKey: 'Geopolitics',
+    filterKey: 'world',
   ),
   CategoryStory(
     label: 'Health',

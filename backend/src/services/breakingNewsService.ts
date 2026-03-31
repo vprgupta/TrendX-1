@@ -24,8 +24,8 @@ const parser = new Parser({
     },
 });
 
-/** Only news published within this many hours will be kept */
-export const BREAKING_MAX_AGE_HOURS = 2;
+/** Only news published within this many hours will be kept (increased for variety) */
+export const BREAKING_MAX_AGE_HOURS = 24;
 
 /** Cache breaking news for 5 minutes — frequent refresh for near-real-time feed */
 const breakingCache = new NodeCache({ stdTTL: 300 });
@@ -40,13 +40,17 @@ interface FeedDef {
 
 const BREAKING_FEEDS: FeedDef[] = [
     // Global / World (update < 5 min)
-    { name: 'BBC World News',       url: 'http://feeds.bbci.co.uk/news/world/rss.xml',                    category: ['General', 'Geopolitics'] },
-    { name: 'Sky News World',       url: 'https://feeds.skynews.com/feeds/rss/world.xml',                category: ['General', 'Geopolitics'] },
+    { name: 'BBC World News',       url: 'http://feeds.bbci.co.uk/news/world/rss.xml',                    category: ['General', 'World'] },
+    { name: 'Sky News World',       url: 'https://feeds.skynews.com/feeds/rss/world.xml',                category: ['General', 'World'] },
     { name: 'Yahoo News',           url: 'https://news.yahoo.com/rss/',                                  category: ['General'] },
-    { name: 'Al Jazeera',           url: 'https://www.aljazeera.com/xml/rss/all.xml',                    category: ['Geopolitics'] },
+    { name: 'Al Jazeera',           url: 'https://www.aljazeera.com/xml/rss/all.xml',                    category: ['World'] },
     { name: 'NPR News',             url: 'https://feeds.npr.org/1001/rss.xml',                           category: ['General'] },
-    { name: 'Google News World',    url: 'https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-US&gl=US&ceid=US:en', category: ['General', 'Geopolitics'] },
-    { name: 'The Guardian World',   url: 'https://www.theguardian.com/world/rss',                        category: ['General', 'Geopolitics'] },
+    { name: 'Google News World',    url: 'https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-US&gl=US&ceid=US:en', category: ['General', 'World'] },
+    { name: 'The Guardian World',   url: 'https://www.theguardian.com/world/rss',                        category: ['General', 'World'] },
+    { name: 'France 24 World',     url: 'https://www.france24.com/en/rss',                              category: ['General', 'World'] },
+    { name: 'DW World News',        url: 'https://rss.dw.com/rdf/rss-en-world',                          category: ['General', 'World'] },
+    { name: 'AP News World',        url: 'https://news.google.com/rss/search?q=when:24h+source:Associated+Press&hl=en-US&gl=US&ceid=US:en', category: ['General', 'World'] },
+    { name: 'Reuters World',        url: 'https://news.google.com/rss/search?q=when:24h+source:Reuters&hl=en-US&gl=US&ceid=US:en', category: ['General', 'World'] },
 
     // Technology (update < 10 min)
     { name: 'BBC Technology',       url: 'http://feeds.bbci.co.uk/news/technology/rss.xml',              category: ['Technology'] },

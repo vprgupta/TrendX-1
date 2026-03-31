@@ -44,7 +44,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation>
     'shorts': NavItem(LucideIcons.play, 'Shorts', AppTheme.violet),
     'country': NavItem(LucideIcons.flag, 'Country', Colors.green),
     'tech': NavItem(LucideIcons.monitor, 'Tech', Colors.orange),
-    'world': NavItem(LucideIcons.globe, 'World', Colors.blue),
+    'world': NavItem(LucideIcons.globe, 'World News', Colors.blue),
     'local': NavItem(LucideIcons.mapPin, 'Local', Colors.teal),
     'trending': NavItem(LucideIcons.flame, 'Trending', const Color(0xFFFF6600)),
     'profile': NavItem(LucideIcons.user, 'Profile', AppTheme.neonRed),

@@ -112,7 +112,7 @@ class PreferencesService extends ChangeNotifier {
   List<String> get navbarOrder => _navbarOrder;
   
   // Available modules for reference
-  // platform, trending, shorts, country, tech, profile, politics, geopolitics, local
+  // platform, trending, shorts, country, tech, profile, politics, world, local
 
   Future<void> updateNavbarOrder(List<String> newOrder) async {
     _navbarOrder = newOrder;
@@ -129,8 +129,15 @@ class PreferencesService extends ChangeNotifier {
       if (!savedOrder.contains('trending')) {
         final idx = savedOrder.indexOf('platform');
         savedOrder.insert(idx >= 0 ? idx + 1 : 1, 'trending');
-        await prefs.setStringList('navbarOrder', savedOrder);
       }
+
+      // Migrate: 'geopolitics' -> 'world'
+      if (savedOrder.contains('geopolitics')) {
+        final idx = savedOrder.indexOf('geopolitics');
+        savedOrder[idx] = 'world';
+      }
+
+      await prefs.setStringList('navbarOrder', savedOrder);
       _navbarOrder = savedOrder;
     }
     notifyListeners();

@@ -26,7 +26,7 @@ const TOPIC_SUBREDDITS: Record<string, string[]> = {
     'technology': ['technology', 'tech', 'programming'],
     'science': ['science', 'futurology'],
     'politics': ['politics', 'worldnews'],
-    'geopolitics': ['geopolitics', 'worldnews'],
+    'world': ['worldnews', 'geopolitics', 'internationalnews'],
     'business': ['business', 'economy'],
     'health': ['health', 'medicine'],
 };

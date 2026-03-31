@@ -20,7 +20,7 @@ class _CustomizeNavbarScreenState extends State<CustomizeNavbarScreen> {
     'country': {'label': 'Country', 'icon': LucideIcons.flag},
     'tech': {'label': 'Tech', 'icon': LucideIcons.monitor},
     'politics': {'label': 'Politics', 'icon': LucideIcons.landmark},
-    'geopolitics': {'label': 'Geopolitics', 'icon': LucideIcons.globe},
+    'world': {'label': 'World News', 'icon': LucideIcons.globe},
     'local': {'label': 'Local News', 'icon': LucideIcons.mapPin},
     'trending': {'label': '🔥 Trending', 'icon': LucideIcons.flame},
     'profile': {'label': 'Profile', 'icon': LucideIcons.user},
@@ -121,8 +121,8 @@ class _CustomizeNavbarScreenState extends State<CustomizeNavbarScreen> {
                 for (final key in activeItems)
                   ListTile(
                     key: Key(key),
-                    leading: Icon(_moduleInfo[key]!['icon']),
-                    title: Text(_moduleInfo[key]!['label']),
+                    leading: Icon(_moduleInfo[key]?['icon'] ?? LucideIcons.helpCircle),
+                    title: Text(_moduleInfo[key]?['label'] ?? 'Unknown'),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -173,9 +173,9 @@ class _CustomizeNavbarScreenState extends State<CustomizeNavbarScreen> {
               ),
             
             ...inactiveItems.map((key) => ListTile(
-              leading: Icon(_moduleInfo[key]!['icon'], color: Colors.grey),
+              leading: Icon(_moduleInfo[key]?['icon'] ?? LucideIcons.helpCircle, color: Colors.grey),
               title: Text(
-                _moduleInfo[key]!['label'],
+                _moduleInfo[key]?['label'] ?? 'Unknown',
                 style: const TextStyle(color: Colors.grey),
               ),
               trailing: IconButton(
