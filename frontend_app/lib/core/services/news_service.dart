@@ -10,14 +10,18 @@ class NewsService {
   static const String baseUrl = 'https://trendx-1.onrender.com/api'; 
 
   Future<List<NewsItem>> getNews(String category, {String country = 'US'}) async {
+    // Normalize so cache keys are consistent regardless of caller casing
+    final normalizedCategory = category.toLowerCase();
+    final normalizedCountry = country.toUpperCase();
+
     try {
-      // 1. Try to fetch from Network
+      // 1. Try to fetch from Network (30s timeout handles Render free-tier cold starts)
       final uri = Uri.parse('$baseUrl/news').replace(queryParameters: {
-        'category': category.toLowerCase(),
-        'country': country,
+        'category': normalizedCategory,
+        'country': normalizedCountry,
       });
 
-      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      final response = await http.get(uri).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
@@ -27,25 +31,25 @@ class NewsService {
         final seen = <String>{};
         final items = rawItems.where((item) => seen.add(item.title)).toList();
         
-        // 2. Cache the result on success (key = category + country)
-        await CacheService.cacheNews(category, country, items);
+        // 2. Cache the result on success (key = normalizedCategory + normalizedCountry)
+        await CacheService.cacheNews(normalizedCategory, normalizedCountry, items);
         
         return items;
       } else {
-        Logger.error('Server returned ${response.statusCode} for $category', tag: 'NewsService');
+        Logger.error('Server returned ${response.statusCode} for $normalizedCategory', tag: 'NewsService');
         throw Exception('Server returned ${response.statusCode}');
       }
     } catch (e, stackTrace) {
       // 3. Fallback to Cache on ANY error (Exception, Timeout, SocketException)
-      Logger.error('Network failed, falling back to cache for $category', error: e, stackTrace: stackTrace, tag: 'NewsService');
+      Logger.error('Network failed, falling back to cache for $normalizedCategory', error: e, stackTrace: stackTrace, tag: 'NewsService');
       
-      final cached = await CacheService.getCachedNews(category, country);
+      final cached = await CacheService.getCachedNews(normalizedCategory, normalizedCountry);
       if (cached != null && cached.isNotEmpty) {
         return cached;
       }
       
       // 4. If no cache either, show offline placeholder
-      return _generateDummyNews(category, country); 
+      return _generateDummyNews(normalizedCategory, normalizedCountry); 
     }
   }
 
