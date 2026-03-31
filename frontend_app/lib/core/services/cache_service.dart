@@ -5,7 +5,8 @@ import '../models/news_item.dart';
 class CacheService {
   static const String _trendsPrefix = 'trends_';
   static const String _newsPrefix = 'news_';
-  static const Duration _cacheExpiry = Duration(minutes: 60); // Increased to 60 mins for news
+  // 15 minutes: short enough that country-switching always gets fresh data
+  static const Duration _cacheExpiry = Duration(minutes: 15);
 
   // --- Trends APIs ---
   static Future<void> cacheTrends(String platform, String countryCode, List<Map<String, dynamic>> trends) async {

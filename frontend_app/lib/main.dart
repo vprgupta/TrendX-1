@@ -10,6 +10,8 @@ import 'features/auth/view/auth_wrapper.dart';
 import 'core/services/saved_trends_service.dart';
 import 'core/services/theme_service.dart';
 import 'core/di/service_locator.dart'; // Import DI
+import 'core/services/cache_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +45,18 @@ void main() async {
   }
   
   setupLocator(); // Initialize DI
+
+  // Version-based cache flush: clears stale news cache when app backend routing changes.
+  // Bump this version string whenever a backend routing fix is deployed.
+  const cacheVersion = 'v4_regional_routing';
+  final prefs = await SharedPreferences.getInstance();
+  final storedVersion = prefs.getString('news_cache_version');
+  if (storedVersion != cacheVersion) {
+    await CacheService.clearCache();
+    await prefs.setString('news_cache_version', cacheVersion);
+    debugPrint('🗑️ Cleared stale news cache (version upgrade: $storedVersion → $cacheVersion)');
+  }
+
   await getIt<SavedTrendsService>().loadSavedTrends();
   runApp(const ProviderScope(child: MyApp())); // Wrap with ProviderScope
 }
