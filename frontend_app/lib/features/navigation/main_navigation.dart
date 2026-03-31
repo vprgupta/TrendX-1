@@ -85,14 +85,15 @@ class _MainNavigationState extends ConsumerState<MainNavigation>
       ? _prefsService.navbarOrder 
       : ['platform', 'trending', 'shorts', 'country', 'world', 'profile'];
 
+  List<String> get _filteredOrder => _currentOrder.where((id) => _allNavItems.containsKey(id)).toList();
+
   List<Widget> get _screens {
-    return _currentOrder.map((id) {
+    return _filteredOrder.map((id) {
        switch (id) {
          case 'platform': return const PlatformScreen();
-         case 'shorts': return ReelsScreen(isActive: _currentIndex == _currentOrder.indexOf('shorts'));
+         case 'shorts': return ReelsScreen(isActive: _currentIndex == _filteredOrder.indexOf('shorts'));
          case 'country': return const CountryScreen();
          case 'tech': return const TechnologyScreen();
-         case 'geopolitics':
          case 'world': return const WorldNewsScreen();
          case 'local': return const LocalNewsScreen();
          case 'trending': return const TrendingNewsScreen();
@@ -103,7 +104,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation>
   }
 
   List<NavItem> get _navItems {
-    return _currentOrder.where((id) => _allNavItems.containsKey(id)).map((id) => _allNavItems[id]!).toList();
+    return _filteredOrder.map((id) => _allNavItems[id]!).toList();
   }
 
   void _onNavItemTapped(int index) {
