@@ -507,8 +507,8 @@ const getTechRSSFallback = async (subCategory: string): Promise<NewsItem[]> => {
             content: item.content || item.contentSnippet || '',
             contentSnippet: item.contentSnippet || '',
             source: 'TechCrunch',
-            imageUrl: extractImageFromContent(item.content),
-            author: item.creator || item.author
+            imageUrl: extractItemImage(item as any),
+            author: (item as any).creator || (item as any).author
         }));
     } catch {
         return [];
