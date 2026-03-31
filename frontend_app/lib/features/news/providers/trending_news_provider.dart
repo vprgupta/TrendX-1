@@ -5,7 +5,7 @@ import '../../../core/services/user_preference_tracker.dart';
 
 final trendingNewsProvider = FutureProvider<List<TrendingStory>>((ref) async {
   final service = TrendingNewsService();
-  final stories = await service.getTrending(limit: 25);
+  final stories = await service.getTrending(limit: 100);
 
   // Apply personalization boosts
   final boosts = await UserPreferenceTracker.getPersonalizationBoosts();

@@ -6,7 +6,7 @@ import '../country/view/country_screen.dart';
 import '../technology/view/technology_screen.dart';
 import '../profile/view/profile_screen.dart';
 import '../politics/view/politics_screen.dart';
-import '../geopolitics/view/geopolitics_screen.dart';
+import '../world_news/view/world_news_screen.dart';
 import '../local_news/view/local_news_screen.dart';
 import '../news/view/trending_news_screen.dart';
 import '../../screens/reels_screen.dart';
@@ -44,8 +44,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation>
     'shorts': NavItem(LucideIcons.play, 'Shorts', AppTheme.violet),
     'country': NavItem(LucideIcons.flag, 'Country', Colors.green),
     'tech': NavItem(LucideIcons.monitor, 'Tech', Colors.orange),
-    'politics': NavItem(LucideIcons.landmark, 'Politics', Colors.red),
-    'geopolitics': NavItem(LucideIcons.globe, 'Geopolitics', Colors.blue),
+    'world': NavItem(LucideIcons.globe, 'World', Colors.blue),
     'local': NavItem(LucideIcons.mapPin, 'Local', Colors.teal),
     'trending': NavItem(LucideIcons.flame, 'Trending', const Color(0xFFFF6600)),
     'profile': NavItem(LucideIcons.user, 'Profile', AppTheme.neonRed),
@@ -84,7 +83,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation>
   
   List<String> get _currentOrder => _prefsService.navbarOrder.isNotEmpty 
       ? _prefsService.navbarOrder 
-      : ['platform', 'trending', 'shorts', 'country', 'profile'];
+      : ['platform', 'trending', 'shorts', 'country', 'world', 'profile'];
 
   List<Widget> get _screens {
     return _currentOrder.map((id) {
@@ -93,8 +92,8 @@ class _MainNavigationState extends ConsumerState<MainNavigation>
          case 'shorts': return ReelsScreen(isActive: _currentIndex == _currentOrder.indexOf('shorts'));
          case 'country': return const CountryScreen();
          case 'tech': return const TechnologyScreen();
-         case 'politics': return const PoliticsScreen();
-         case 'geopolitics': return const GeopoliticsScreen();
+         case 'geopolitics':
+         case 'world': return const WorldNewsScreen();
          case 'local': return const LocalNewsScreen();
          case 'trending': return const TrendingNewsScreen();
          case 'profile': return ProfileScreen(onThemeToggle: widget.onThemeToggle, isDarkMode: widget.isDarkMode);
