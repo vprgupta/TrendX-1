@@ -322,14 +322,17 @@ export const getNews = async (category: string = 'world', country: string = 'US'
     const raw = category.replace(/[^\w\s]/gi, '').trim().toLowerCase();
     const cc = country.toUpperCase();
 
-    // 🌐 GEOPOLITICS / WORLD POLITICS — multi-source, up to 50 fresh global stories
-    if (['geopolitics', 'politics', 'world politics', 'international', 'world', 'world news'].includes(raw)) {
-        return getGlobalPoliticsNews(country);
-    }
-
-    // 🇮🇳 🇳🇵  REGIONAL — use local source aggregator for India and Nepal
+    // 🇮🇳 🇳🇵  REGIONAL — highest priority: India and Nepal always get country-specific feeds
+    // This MUST come before the geopolitics check so India+Politics → Indian politics
+    // (not global Guardian/BBC politics)
     if (['IN', 'NP'].includes(cc)) {
         return getRegionalNews(raw, cc);
+    }
+
+    // 🌐 GEOPOLITICS / WORLD POLITICS — multi-source, up to 50 fresh global stories
+    // Only reached for non-IN/NP countries
+    if (['geopolitics', 'politics', 'world politics', 'international', 'world', 'world news'].includes(raw)) {
+        return getGlobalPoliticsNews(country);
     }
 
     // Everything else (local, top, sports, health etc.) — NewsData.io + Google RSS fallback
