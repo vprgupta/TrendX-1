@@ -212,32 +212,39 @@ const REGIONAL_FEEDS: Record<string, Record<string, string[]>> = {
         ],
     },
     NP: {
+        // Strategy for Nepal: use the general feed from each source (category feeds often fail),
+        // supplement with Google News Nepal geo-targeted search terms via getWorldNews fallback.
         politics:      [
-            'https://kathmandupost.com/rss',                                   // Kathmandu Post
+            'https://thehimalayantimes.com/feed',                              // Himalayan Times (general, most reliable)
+            'https://risingnepaldaily.com/feed',                               // Rising Nepal Daily
+            'https://english.onlinekhabar.com/feed',                           // Online Khabar English
             'https://myrepublica.nagariknetwork.com/feed/',                    // My Republica
-            'https://risingnepaldaily.com/feed',                              // Rising Nepal
         ],
         business:      [
-            'https://thehimalayantimes.com/category/business/feed/',           // Himalayan Times Business
-            'https://myrepublica.nagariknetwork.com/category/business/feed/',  // Republica Business
-            'https://kathmandupost.com/money/rss',                             // KPost Money
+            'https://thehimalayantimes.com/feed',                              // Himalayan Times
+            'https://english.onlinekhabar.com/feed',                           // Online Khabar
+            'https://risingnepaldaily.com/feed',                               // Rising Nepal
+            'https://myrepublica.nagariknetwork.com/feed/',                    // My Republica
         ],
         health:        [
-            'https://thehimalayantimes.com/category/health/feed/',             // Himalayan Times Health
-            'https://kathmandupost.com/health/rss',                            // KPost Health
-            'https://www.healthline.com/rss/news',                             // Healthline fallback
+            'https://thehimalayantimes.com/feed',                              // Himalayan Times
+            'https://english.onlinekhabar.com/feed',                           // Online Khabar
+            'https://www.healthline.com/rss/news',                             // Healthline global fallback
         ],
         entertainment: [
-            'https://thehimalayantimes.com/category/entertainment/feed/',      // Himalayan Times Ent
-            'https://myrepublica.nagariknetwork.com/category/entertainment/feed/',
+            'https://thehimalayantimes.com/feed',                              // Himalayan Times
+            'https://english.onlinekhabar.com/feed',                           // Online Khabar
+            'https://myrepublica.nagariknetwork.com/feed/',                    // My Republica
         ],
         sports:        [
-            'https://thehimalayantimes.com/category/sports/feed/',             // Himalayan Times Sports
-            'https://myrepublica.nagariknetwork.com/category/sports/feed/',
+            'https://thehimalayantimes.com/feed',                              // Himalayan Times
+            'https://risingnepaldaily.com/feed',                               // Rising Nepal
+            'https://english.onlinekhabar.com/feed',                           // Online Khabar
         ],
         science:       [
-            'https://kathmandupost.com/national/rss',                          // KPost general (science is sparse)
-            'https://www.sciencedaily.com/rss/top/science.xml',               // ScienceDaily global
+            'https://thehimalayantimes.com/feed',                              // Himalayan Times
+            'https://english.onlinekhabar.com/feed',                           // Online Khabar
+            'https://www.sciencedaily.com/rss/top/science.xml',                // ScienceDaily global
         ],
     },
 };
@@ -364,7 +371,8 @@ const getGoogleNewsRSS = async (category: string, country: string): Promise<News
         'DE': 'https://news.google.com/rss?hl=en-DE&gl=DE&ceid=DE:en',
         'FR': 'https://news.google.com/rss?hl=en-FR&gl=FR&ceid=FR:en',
         'BR': 'https://news.google.com/rss?hl=en-BR&gl=BR&ceid=BR:en',
-        'NP': 'https://news.google.com/rss?hl=en-NP&gl=NP&ceid=NP:ne',
+        // Nepal: force English content so the app can display it
+        'NP': 'https://news.google.com/rss?hl=en-NP&gl=NP&ceid=NP:en',
         'PK': 'https://news.google.com/rss?hl=en-PK&gl=PK&ceid=PK:en',
         'BD': 'https://news.google.com/rss?hl=en-BD&gl=BD&ceid=BD:en',
         'LK': 'https://news.google.com/rss?hl=en-LK&gl=LK&ceid=LK:en',
