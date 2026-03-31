@@ -250,8 +250,40 @@ const REGIONAL_FEEDS: Record<string, Record<string, string[]>> = {
 };
 
 /**
+ * Nepal: Google News topic-specific RSS feeds geo-targeted to Nepal (English)
+ * These ARE properly categorized unlike the general Himalayan Times/Republica feeds.
+ */
+const NEPAL_GNEWS: Record<string, string> = {
+    politics:      'https://news.google.com/rss/headlines/section/topic/NATION?hl=en-NP&gl=NP&ceid=NP:en',
+    business:      'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-NP&gl=NP&ceid=NP:en',
+    health:        'https://news.google.com/rss/headlines/section/topic/HEALTH?hl=en-NP&gl=NP&ceid=NP:en',
+    entertainment: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=en-NP&gl=NP&ceid=NP:en',
+    sports:        'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=en-NP&gl=NP&ceid=NP:en',
+    science:       'https://news.google.com/rss/headlines/section/topic/SCIENCE?hl=en-NP&gl=NP&ceid=NP:en',
+};
+
+/**
+ * Keywords used to filter off-topic articles when pulling from
+ * Nepal's general RSS feeds (which mix all categories together).
+ */
+const NEPAL_KEYWORDS: Record<string, string[]> = {
+    politics:      ['government', 'minister', 'parliament', 'prime', 'cabinet', 'policy', 'election', 'party', 'nepal', 'kathmandu', 'constitution', 'federal'],
+    business:      ['economy', 'business', 'market', 'investment', 'bank', 'finance', 'gdp', 'trade', 'industry', 'remittance', 'nrb', 'stock', 'budget', 'revenue'],
+    health:        ['health', 'hospital', 'medical', 'disease', 'doctor', 'medicine', 'vaccine', 'treatment', 'patient', 'dengue', 'mental', 'nutrition'],
+    entertainment: ['entertainment', 'movie', 'film', 'music', 'festival', 'culture', 'art', 'award', 'celebrity', 'bollywood', 'nepali film', 'cinema'],
+    sports:        ['sport', 'cricket', 'football', 'match', 'tournament', 'team', 'player', 'medal', 'athlete', 'game', 'cup', 'marathon', 'olympic', 'goal', 'wicket'],
+    science:       ['science', 'research', 'technology', 'space', 'innovation', 'study', 'discovery', 'environment', 'climate', 'earthquake', 'biodiversity'],
+};
+
+const matchesCategory = (item: NewsItem, keywords: string[]): boolean => {
+    const text = `${item.title} ${item.contentSnippet}`.toLowerCase();
+    return keywords.some(kw => text.includes(kw));
+};
+
+/**
  * Fetch all regional RSS feeds for a given country and category in parallel,
  * merge with NewsData/Google RSS, deduplicate and return top 15+ items.
+ * Nepal uses a special path: Google News topic feeds + keyword-filtered general feeds.
  */
 const getRegionalNews = async (category: string, countryCode: string): Promise<NewsItem[]> => {
     const cc = countryCode.toUpperCase();
@@ -272,32 +304,83 @@ const getRegionalNews = async (category: string, countryCode: string): Promise<N
     const cached = newsCache.get<NewsItem[]>(cacheKey);
     if (cached) return cached;
 
-    // 1. Fetch regional RSS if available
     const regionalItems: NewsItem[] = [];
-    const feeds = (catKey && REGIONAL_FEEDS[cc]?.[catKey]) ?? [];
 
-    if (feeds.length > 0) {
-        const results = await Promise.allSettled(feeds.map(url => parser.parseURL(url)));
-        for (const r of results) {
-            if (r.status !== 'fulfilled') continue;
-            for (const item of r.value.items.slice(0, 20)) {
-                regionalItems.push({
-                    title:           item.title ?? 'Untitled',
-                    link:            item.link ?? '#',
-                    pubDate:         item.pubDate ?? item.isoDate ?? new Date().toISOString(),
-                    content:         item.content ?? item.contentSnippet ?? '',
-                    contentSnippet:  item.contentSnippet ?? '',
-                    source:          (item as any).creator ?? (item as any).source?.title ?? r.value.title ?? 'Local',
-                    imageUrl:        extractItemImage(item as any),
-                    author:          (item as any).creator ?? (item as any).author,
-                });
+    if (cc === 'NP' && catKey) {
+        // ─── Nepal special path ──────────────────────────────────────────────────
+        // 1a. Google News topic feed for Nepal (properly categorized, English)
+        const gnewsUrl = NEPAL_GNEWS[catKey];
+        if (gnewsUrl) {
+            try {
+                const feed = await parser.parseURL(gnewsUrl);
+                for (const item of feed.items.slice(0, 25)) {
+                    regionalItems.push({
+                        title:          item.title ?? 'Untitled',
+                        link:           item.link ?? '#',
+                        pubDate:        item.pubDate ?? item.isoDate ?? new Date().toISOString(),
+                        content:        item.content ?? item.contentSnippet ?? '',
+                        contentSnippet: item.contentSnippet ?? '',
+                        source:         (item as any).creator ?? (item as any).source?.title ?? 'Google News Nepal',
+                        imageUrl:       extractItemImage(item as any),
+                        author:         (item as any).creator ?? (item as any).author,
+                    });
+                }
+            } catch (e) {
+                console.log(`⚠️  Nepal GNews ${catKey} failed:`, (e as any).message);
+            }
+        }
+
+        // 1b. Keyword-filter general Nepali feeds (Himalayan Times, Online Khabar, etc.)
+        const keywords = NEPAL_KEYWORDS[catKey] ?? [];
+        const generalFeeds = REGIONAL_FEEDS['NP']?.[catKey] ?? [];
+        if (generalFeeds.length > 0 && keywords.length > 0) {
+            const results = await Promise.allSettled(generalFeeds.map(url => parser.parseURL(url)));
+            for (const r of results) {
+                if (r.status !== 'fulfilled') continue;
+                for (const item of r.value.items.slice(0, 30)) {
+                    const mapped: NewsItem = {
+                        title:          item.title ?? 'Untitled',
+                        link:           item.link ?? '#',
+                        pubDate:        item.pubDate ?? item.isoDate ?? new Date().toISOString(),
+                        content:        item.content ?? item.contentSnippet ?? '',
+                        contentSnippet: item.contentSnippet ?? '',
+                        source:         (item as any).creator ?? (item as any).source?.title ?? r.value.title ?? 'Nepal News',
+                        imageUrl:       extractItemImage(item as any),
+                        author:         (item as any).creator ?? (item as any).author,
+                    };
+                    // Only include articles that match the category's keywords
+                    if (matchesCategory(mapped, keywords)) {
+                        regionalItems.push(mapped);
+                    }
+                }
+            }
+        }
+    } else {
+        // ─── India (and any other regional country) ─────────────────────────────
+        const feeds = (catKey && REGIONAL_FEEDS[cc]?.[catKey]) ?? [];
+        if (feeds.length > 0) {
+            const results = await Promise.allSettled(feeds.map(url => parser.parseURL(url)));
+            for (const r of results) {
+                if (r.status !== 'fulfilled') continue;
+                for (const item of r.value.items.slice(0, 20)) {
+                    regionalItems.push({
+                        title:           item.title ?? 'Untitled',
+                        link:            item.link ?? '#',
+                        pubDate:         item.pubDate ?? item.isoDate ?? new Date().toISOString(),
+                        content:         item.content ?? item.contentSnippet ?? '',
+                        contentSnippet:  item.contentSnippet ?? '',
+                        source:          (item as any).creator ?? (item as any).source?.title ?? r.value.title ?? 'Local',
+                        imageUrl:        extractItemImage(item as any),
+                        author:          (item as any).creator ?? (item as any).author,
+                    });
+                }
             }
         }
     }
 
     // 2. Merge with NewsData / Google RSS pipeline for broader coverage
-    const [genericItems] = await Promise.allSettled([getWorldNews(catKey ?? cat, cc)]);
-    const generic = genericItems.status === 'fulfilled' ? genericItems.value : [];
+    const [genericResult] = await Promise.allSettled([getWorldNews(catKey ?? cat, cc)]);
+    const generic = genericResult.status === 'fulfilled' ? genericResult.value : [];
 
     const all = [...regionalItems, ...generic];
 
@@ -313,13 +396,14 @@ const getRegionalNews = async (category: string, countryCode: string): Promise<N
             seen.add(key);
             deduped.push(item);
         }
-        if (deduped.length >= 25) break;  // cap at 25 per category section
+        if (deduped.length >= 25) break;
     }
 
     console.log(`🗺️  [Regional ${cc}/${catKey ?? cat}] ${regionalItems.length} local + ${generic.length} generic → ${deduped.length} final`);
     if (deduped.length > 0) newsCache.set(cacheKey, deduped, 300); // 5-min cache
     return deduped;
 };
+
 
 /**
  * Smart router — each category gets the best specialized source

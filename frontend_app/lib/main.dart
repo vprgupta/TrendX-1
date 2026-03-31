@@ -48,7 +48,7 @@ void main() async {
 
   // Version-based cache flush: clears stale news cache when app backend routing changes.
   // Bump this version string whenever a backend routing fix is deployed.
-  const cacheVersion = 'v5_nepal_fix';
+  const cacheVersion = 'v6_nepal_categorized';
   final prefs = await SharedPreferences.getInstance();
   final storedVersion = prefs.getString('news_cache_version');
   if (storedVersion != cacheVersion) {
