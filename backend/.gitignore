@@ -1,0 +1,10 @@
+# Don't ignore dist/ — it is committed so Render always has fresh compiled JS
+# without needing a build step (avoids stale cache artifacts).
+# The prebuild script in package.json cleans dist/ before local builds.
+
+node_modules/
+*.tsbuildinfo
+.env
+.env.local
+logs/
+*.log
