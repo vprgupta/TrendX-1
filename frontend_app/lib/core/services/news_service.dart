@@ -57,6 +57,36 @@ class NewsService {
     return getNews('top', country: country);
   }
 
+  /// Fetches hyper-local news for a specific Indian state + optional city.
+  /// Uses the dedicated /api/news/local endpoint which strictly filters
+  /// results to only articles mentioning the given state/city.
+  Future<List<NewsItem>> getLocalStateNews({
+    required String state,
+    String city = '',
+    String category = 'general',
+  }) async {
+    final stateLower    = state.toLowerCase();
+    final categoryLower = category.toLowerCase();
+    try {
+      final uri = Uri.parse('$baseUrl/news/local').replace(queryParameters: {
+        'state':    state,
+        if (city.isNotEmpty) 'city': city,
+        'category': categoryLower,
+      });
+      final response = await http.get(uri).timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((j) => NewsItem.fromJson(j)).toList();
+      }
+      throw Exception('Local news returned ${response.statusCode}');
+    } catch (e) {
+      Logger.error('Local news fetch failed for $state/$category', error: e, tag: 'NewsService');
+      // Try general cache as fallback
+      final cached = await CacheService.getCachedNews(categoryLower, 'IN');
+      return cached ?? [];
+    }
+  }
+
   // Fallback for development/demo (if backend is not running)
   List<NewsItem> _generateDummyNews(String category, String country) {
      print('Generating dummy data for $category');

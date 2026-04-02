@@ -314,6 +314,142 @@ export const getNews = async (category: string = 'world', country: string = 'US'
     return getWorldNews(targetCategory, country);
 };
 
+// ─── State keyword map for strict post-filtering ──────────────────────────────
+// After fetching Google News results, we VERIFY each article mentions the state.
+// Without this, generic national news bleeds through.
+const STATE_VERIFY_KEYWORDS: Record<string, string[]> = {
+    'andhra pradesh':   ['andhra', 'andhra pradesh', 'amaravati', 'visakhapatnam', 'vizag', 'vijayawada'],
+    'arunachal pradesh':['arunachal', 'itanagar'],
+    'assam':            ['assam', 'guwahati', 'dispur', 'silchar', 'brahmaputra'],
+    'bihar':            ['bihar', 'patna', 'gaya', 'bhagalpur', 'muzaffarpur'],
+    'chhattisgarh':     ['chhattisgarh', 'raipur', 'bhilai', 'bilaspur'],
+    'goa':              ['goa', 'panaji', 'margao', 'vasco'],
+    'gujarat':          ['gujarat', 'ahmedabad', 'surat', 'vadodara', 'rajkot', 'gandhinagar'],
+    'haryana':          ['haryana', 'gurugram', 'gurgaon', 'faridabad', 'chandigarh', 'rohtak', 'hisar'],
+    'himachal pradesh': ['himachal', 'shimla', 'dharamsala', 'manali', 'kullu'],
+    'jharkhand':        ['jharkhand', 'ranchi', 'jamshedpur', 'dhanbad', 'bokaro'],
+    'karnataka':        ['karnataka', 'bengaluru', 'bangalore', 'mysuru', 'mysore', 'hubli', 'mangalore', 'belagavi'],
+    'kerala':           ['kerala', 'thiruvananthapuram', 'kochi', 'kozhikode', 'thrissur', 'kannur'],
+    'madhya pradesh':   ['madhya pradesh', 'bhopal', 'indore', 'jabalpur', 'gwalior'],
+    'maharashtra':      ['maharashtra', 'mumbai', 'pune', 'nagpur', 'nashik', 'aurangabad', 'thane'],
+    'manipur':          ['manipur', 'imphal'],
+    'meghalaya':        ['meghalaya', 'shillong'],
+    'mizoram':          ['mizoram', 'aizawl'],
+    'nagaland':         ['nagaland', 'kohima', 'dimapur'],
+    'odisha':           ['odisha', 'orissa', 'bhubaneswar', 'cuttack', 'rourkela'],
+    'punjab':           ['punjab', 'ludhiana', 'amritsar', 'jalandhar', 'patiala'],
+    'rajasthan':        ['rajasthan', 'jaipur', 'jodhpur', 'udaipur', 'kota', 'ajmer'],
+    'sikkim':           ['sikkim', 'gangtok'],
+    'tamil nadu':       ['tamil nadu', 'tamilnadu', 'chennai', 'madurai', 'coimbatore', 'tiruchirapalli', 'salem'],
+    'telangana':        ['telangana', 'hyderabad', 'warangal', 'nizamabad', 'karimnagar'],
+    'tripura':          ['tripura', 'agartala'],
+    'uttar pradesh':    ['uttar pradesh', 'up', 'lucknow', 'kanpur', 'agra', 'varanasi', 'allahabad', 'prayagraj', 'noida', 'ghaziabad', 'meerut'],
+    'uttarakhand':      ['uttarakhand', 'dehradun', 'haridwar', 'rishikesh', 'nainital'],
+    'west bengal':      ['west bengal', 'kolkata', 'calcutta', 'howrah', 'durgapur', 'asansol'],
+    'delhi':            ['delhi', 'new delhi', 'ndmc', 'dda'],
+    'jammu and kashmir':['jammu', 'kashmir', 'srinagar', 'j&k', 'j and k'],
+    'ladakh':           ['ladakh', 'leh', 'kargil'],
+    'chandigarh':       ['chandigarh'],
+    'puducherry':       ['puducherry', 'pondicherry'],
+    'andaman and nicobar islands': ['andaman', 'nicobar', 'port blair'],
+    'dadra and nagar haveli and daman and diu': ['daman', 'diu', 'dadra', 'silvassa'],
+    'lakshadweep':      ['lakshadweep', 'kavaratti'],
+};
+
+/**
+ * Hyper-local news for a specific Indian state (and optionally city).
+ *
+ * Strategy:
+ *  1. Google News search RSS for "<state> <category>" – geo-specific, fast, free
+ *  2. Post-filter against state keywords so national news is excluded
+ *  3. Return top 20 fresh items (≤48h)
+ */
+export const getLocalNews = async (
+    state: string,
+    city: string = '',
+    category: string = 'general',
+): Promise<NewsItem[]> => {
+    const stateLower = state.toLowerCase().trim();
+    const catLower = category.toLowerCase().replace(/[^\w\s]/gi, '').trim();
+    const cacheKey = `local_${stateLower.replace(/\s/g, '_')}_${catLower}`;
+
+    const cached = newsCache.get<NewsItem[]>(cacheKey);
+    if (cached) return cached;
+
+    // Map category to human-readable topic for search
+    const catTopic: Record<string, string> = {
+        'politics': 'politics government election',
+        'business': 'business economy investment',
+        'health':   'health hospital medical',
+        'sports':   'sports cricket IPL football',
+        'crime':    'crime police arrest',
+        'entertainment': 'entertainment film movies',
+        'science':  'science research technology',
+    };
+    const topicWords = catTopic[catLower] ?? catLower;
+
+    // Build search queries: primary uses city if available, fallback is state-only
+    const primaryQuery   = city ? `"${city}" OR "${state}" ${topicWords}` : `"${state}" ${topicWords}`;
+    const fallbackQuery  = `${state} ${topicWords} site:thehindu.com OR site:ndtv.com OR site:hindustantimes.com OR site:timesofindia.com OR site:deccanherald.com`;
+
+    const encPrimary  = encodeURIComponent(primaryQuery);
+    const encFallback = encodeURIComponent(fallbackQuery);
+
+    const urls = [
+        // GNews search — picks up local news from all publishers
+        `https://news.google.com/rss/search?q=${encPrimary}&hl=en-IN&gl=IN&ceid=IN:en`,
+        // Fallback targeted at reliable Indian regional outlets
+        `https://news.google.com/rss/search?q=${encFallback}&hl=en-IN&gl=IN&ceid=IN:en`,
+    ];
+
+    const raw48h = Date.now() - 48 * 3_600_000;
+    const verifyKws = STATE_VERIFY_KEYWORDS[stateLower] ?? [stateLower];
+
+    const allItems: NewsItem[] = [];
+
+    const results = await Promise.allSettled(urls.map(u => parser.parseURL(u)));
+
+    for (const r of results) {
+        if (r.status !== 'fulfilled') continue;
+        for (const item of r.value.items) {
+            const pubMs = new Date(item.pubDate || item.isoDate || '').getTime();
+            if (isNaN(pubMs) || pubMs < raw48h) continue;   // older than 48h → skip
+
+            const text = `${item.title} ${item.contentSnippet || ''}`.toLowerCase();
+
+            // STRICT: article must mention the state or one of its cities/keywords
+            if (!verifyKws.some(kw => text.includes(kw))) continue;
+
+            allItems.push({
+                title:          item.title ?? 'Untitled',
+                link:           item.link ?? '#',
+                pubDate:        item.pubDate ?? item.isoDate ?? new Date().toISOString(),
+                content:        item.contentSnippet ?? '',
+                contentSnippet: item.contentSnippet ?? '',
+                source:         (item as any).source?.title ?? (item as any).creator ?? r.value.title ?? state,
+                imageUrl:       extractItemImage(item as any),
+                author:         (item as any).creator ?? (item as any).author,
+            });
+        }
+    }
+
+    // Sort newest first
+    allItems.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+
+    // Deduplicate
+    const seen = new Set<string>();
+    const deduped: NewsItem[] = [];
+    for (const item of allItems) {
+        const key = item.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 70);
+        if (!seen.has(key)) { seen.add(key); deduped.push(item); }
+        if (deduped.length >= 20) break;
+    }
+
+    console.log(`📍 [LocalNews] ${state}/${catLower} → ${deduped.length} articles (strict filter)`);
+    if (deduped.length > 0) newsCache.set(cacheKey, deduped, 300); // 5-min cache
+    return deduped;
+};
+
 
 /**
  * Google News RSS fallback

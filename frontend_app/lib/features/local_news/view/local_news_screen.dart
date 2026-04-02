@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/widgets/news_feed.dart';
+import '../../../features/news/providers/news_provider.dart';
+import '../../../core/widgets/news_card.dart';
 
 // ─── Indian state → search query mapping ────────────────────────────────────
 // The backend accepts a 'country' param (e.g. 'IN') and a 'region' search term
@@ -565,10 +568,9 @@ class _LocalNewsScreenState extends State<LocalNewsScreen>
 
   Widget _buildNewsFeed(ThemeData theme) {
     final stateDisplay = _stateName ?? 'India';
+    final city = _cityName ?? '';
     final newsCategories = ['Politics', 'Business', 'Health', 'Crime', 'Sports'];
 
-    // Use ClampingScrollPhysics so overscrolling does NOT trigger
-    // any refresh / location re-detection.
     return ListView.builder(
       physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 120, top: 8),
@@ -576,10 +578,11 @@ class _LocalNewsScreenState extends State<LocalNewsScreen>
       itemBuilder: (context, index) {
         if (index == 0) return _buildStateBanner(theme, stateDisplay);
         final cat = newsCategories[index - 1];
-        return NewsFeed(
-          key: ValueKey('$cat-$_refreshKey'),
-          categoryName: cat,
-          countryOverride: _newsCountryParam,
+        return _LocalStateFeed(
+          key: ValueKey('$stateDisplay-$city-$cat-$_refreshKey'),
+          state: stateDisplay,
+          city: city,
+          category: cat,
         ).animate().fadeIn(
               delay: Duration(milliseconds: (index - 1) * 100),
               duration: 400.ms,
@@ -827,6 +830,147 @@ class _StatePickerSheetState extends State<_StatePickerSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ─── Hyper-local per-section feed ────────────────────────────────────────────
+/// Renders a single category section of local state news.
+/// Each instance uses its own `localStateNewsProvider` key so categories
+/// fetch independently and don't share each other's cached data.
+class _LocalStateFeed extends ConsumerWidget {
+  final String state;
+  final String city;
+  final String category;
+
+  const _LocalStateFeed({
+    super.key,
+    required this.state,
+    required this.city,
+    required this.category,
+  });
+
+  IconData _icon() {
+    switch (category.toLowerCase()) {
+      case 'politics': return Icons.account_balance_rounded;
+      case 'business': return Icons.trending_up_rounded;
+      case 'health':   return Icons.favorite_rounded;
+      case 'crime':    return Icons.security_rounded;
+      case 'sports':   return Icons.sports_cricket_rounded;
+      default:         return Icons.newspaper_rounded;
+    }
+  }
+
+  Color _color() {
+    switch (category.toLowerCase()) {
+      case 'politics':     return const Color(0xFFE53935);
+      case 'business':     return const Color(0xFF43A047);
+      case 'health':       return const Color(0xFF00ACC1);
+      case 'crime':        return const Color(0xFFFF7043);
+      case 'sports':       return const Color(0xFF5C6BC0);
+      default:             return const Color(0xFF78909C);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final key = '$state|$city|$category';
+    final async = ref.watch(localStateNewsProvider(key));
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final color = _color();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(_icon(), color: color, size: 16),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                category,
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: color.withOpacity(0.25)),
+                ),
+                child: Text(
+                  state,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Content
+        async.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+          error: (e, _) => Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Could not load $category news for $state.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          data: (items) {
+            if (items.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                child: Text(
+                  'No recent $category news found for $state.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              );
+            }
+            return Column(
+              children: items.take(8).toList().asMap().entries.map((e) {
+                return NewsCard(
+                  news: e.value,
+                  rank: e.key + 1,
+                );
+              }).toList(),
+            );
+          },
+        ),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Divider(
+            color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+          ),
+        ),
+      ],
     );
   }
 }

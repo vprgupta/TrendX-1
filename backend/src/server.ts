@@ -22,6 +22,7 @@ import integrationRoutes from './routes/integrationRoutes';
 import aiRoutes from './routes/ai';
 import * as newsController from './controllers/newsController';
 import * as trendingNewsController from './controllers/trendingNewsController';
+import { getLocalNews } from './services/newsService';
 
 import { initializeScheduler } from './jobs/trendScheduler';
 import { startBreakingNewsRefresher } from './services/breakingNewsService';
@@ -122,6 +123,18 @@ app.get('/api/news/breakthrough', async (req, res) => {
     res.json(items);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch breakthroughs' });
+  }
+});
+// Hyper-local state news — bypasses getNews entirely
+app.get('/api/news/local', async (req, res) => {
+  try {
+    const state    = (req.query.state    as string | undefined) ?? 'India';
+    const city     = (req.query.city     as string | undefined) ?? '';
+    const category = (req.query.category as string | undefined) ?? 'general';
+    const items = await getLocalNews(state, city, category);
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch local news' });
   }
 });
 

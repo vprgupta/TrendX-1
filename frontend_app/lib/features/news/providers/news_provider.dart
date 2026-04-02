@@ -65,7 +65,24 @@ final countryNewsByCategoryProvider = FutureProvider.family<List<NewsItem>, Stri
   return await newsService.getNews(category, country: countryCode);
 });
 
-// ─── Breakthrough ─────────────────────────────────────────────────────────────
+// ─── Hyper-local state news ────────────────────────────────────────────────────
+
+/// Fetches local news strictly for an Indian state + optional city.
+/// Key format: "<state>|<city>|<category>" — e.g. "Maharashtra|Mumbai|Politics"
+/// city may be empty: "Maharashtra||Politics"
+///
+/// Uses the dedicated /api/news/local endpoint which applies strict
+/// state-keyword post-filtering so national news does NOT bleed through.
+final localStateNewsProvider = FutureProvider.family<List<NewsItem>, String>((ref, key) async {
+  final newsService = getIt<NewsService>();
+  final parts = key.split('|');
+  final state    = parts.isNotEmpty ? parts[0] : 'India';
+  final city     = parts.length > 1 ? parts[1] : '';
+  final category = parts.length > 2 ? parts[2] : 'general';
+  return newsService.getLocalStateNews(state: state, city: city, category: category);
+});
+
+
 
 /// A single breakthrough discovery item from the dedicated backend endpoint.
 class BreakthroughItem {
