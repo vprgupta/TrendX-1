@@ -1,0 +1,89 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const adminController = __importStar(require("../controllers/adminController"));
+const auth_1 = require("../middleware/auth");
+const router = express_1.default.Router();
+// Admin dashboard routes (Secured)
+router.use(auth_1.authenticate);
+router.use(auth_1.isAdmin);
+router.get('/stats', adminController.getDashboardStats);
+router.get('/users', adminController.getUsersWithActivity);
+router.get('/users/:userId/activity', adminController.getUserActivityDetails);
+router.get('/active-users', adminController.getActiveUsers);
+router.get('/analytics', adminController.getAnalytics);
+// NEW: Advanced analytics using aggregation pipelines
+const analyticsAgg = require('../utils/aggregations');
+router.get('/analytics/dashboard', async (req, res) => {
+    try {
+        const stats = await analyticsAgg.getDashboardStats();
+        res.json(stats);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+    }
+});
+router.get('/analytics/trending/category', async (req, res) => {
+    try {
+        const data = await analyticsAgg.getTrendingByCategory();
+        res.json({ data });
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Failed to fetch data' });
+    }
+});
+router.get('/analytics/trending/country', async (req, res) => {
+    try {
+        const data = await analyticsAgg.getTrendingByCountry();
+        res.json({ data });
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Failed to fetch data' });
+    }
+});
+router.get('/analytics/platforms', async (req, res) => {
+    try {
+        const data = await analyticsAgg.getPlatformMetrics();
+        res.json({ data });
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Failed to fetch data' });
+    }
+});
+exports.default = router;
