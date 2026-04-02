@@ -13,6 +13,8 @@ const parser = new Parser({
             ['media:thumbnail', 'mediaThumbnail', { keepArray: false }],
             ['media:group', 'mediaGroup', { keepArray: false }],
             ['enclosure', 'enclosure', { keepArray: false }],
+            ['content:encoded', 'content:encoded', { keepArray: false }],
+            ['description', 'description', { keepArray: false }],
         ],
     },
 });
@@ -369,18 +371,6 @@ const getGoogleNewsRSS = async (category: string, country: string): Promise<News
         const feed = await parser.parseURL(feedUrl);
 
         const newsItems = feed.items.map(item => {
-            let imageUrl: string | undefined;
-            if (item.content) {
-                const imgMatch = item.content.match(/<img[^>]+src="([^">]+)"/);
-                if (imgMatch && imgMatch[1]) {
-                    imageUrl = imgMatch[1];
-                }
-            }
-
-            if (!imageUrl && (item as any).enclosure && (item as any).enclosure.url) {
-                imageUrl = (item as any).enclosure.url;
-            }
-
             return {
                 title: item.title || 'No title',
                 link: item.link || '#',
@@ -388,7 +378,7 @@ const getGoogleNewsRSS = async (category: string, country: string): Promise<News
                 content: item.content || '',
                 contentSnippet: item.contentSnippet || '',
                 source: (item as any).creator || (item as any).author || 'Google News',
-                imageUrl: imageUrl ?? extractItemImage(item as any),
+                imageUrl: extractItemImage(item as any),
                 author: (item as any).creator || (item as any).author
             };
         });
@@ -628,29 +618,31 @@ const mapCategoryToNewsData = (category: string): string => {
 };
 
 /**
- * Extract image URL from HTML content
+ * Extract the first valid image URL from any HTML string.
  */
-const extractImageFromContent = (content?: string): string | undefined => {
-    if (!content) return undefined;
-    const imgMatch = content.match(/<img[^>]+src="([^">]+)"/);
-    return imgMatch ? imgMatch[1] : undefined;
+const extractImageFromHtml = (html?: string): string | undefined => {
+    if (!html || typeof html !== 'string') return undefined;
+    // Match src with both single and double quotes, require http
+    const m = html.match(/<img[^>]+src=["']([^"'\s>]+)["']/i);
+    return m && m[1] && m[1].startsWith('http') ? m[1] : undefined;
 };
 
 /**
  * Extract image from an RSS item - checks all possible image fields in priority order.
- * Handles media:content, media:thumbnail, enclosure, and HTML img tags.
+ * Handles media:content, media:thumbnail, media:group, enclosure, and HTML img tags
+ * across content, summary, content:encoded, and description fields.
  */
 const extractItemImage = (item: any): string | undefined => {
-    // 1. media:content (most common for Indian news sources like TOI, NDTV)
+    // 1. media:content (most common for TOI, NDTV, BBC)
     const mc = item.mediaContent;
     if (mc) {
-        if (typeof mc === 'string') return mc;
+        if (typeof mc === 'string' && mc.startsWith('http')) return mc;
         if (mc.$ && mc.$.url) return mc.$.url;
     }
-    // 2. media:thumbnail (used by many Wordpress sites)
+    // 2. media:thumbnail (WordPress, many Indian sources)
     const mt = item.mediaThumbnail;
     if (mt) {
-        if (typeof mt === 'string') return mt;
+        if (typeof mt === 'string' && mt.startsWith('http')) return mt;
         if (mt.$ && mt.$.url) return mt.$.url;
     }
     // 3. media:group > media:content
@@ -659,11 +651,22 @@ const extractItemImage = (item: any): string | undefined => {
         const mgContent = mg['media:content'];
         if (mgContent.$ && mgContent.$.url) return mgContent.$.url;
     }
-    // 4. enclosure (used by BBC, etc.)
+    // 4. enclosure (BBC, NPR, etc.)
     const enc = item.enclosure;
-    if (enc && enc.url && (enc.type?.startsWith('image') || enc.url.match(/\.(jpg|jpeg|png|webp)/i))) {
+    if (enc && enc.url && (enc.type?.startsWith('image') || /\.(jpg|jpeg|png|webp|gif)/i.test(enc.url))) {
         return enc.url;
     }
-    // 5. Parse img src from HTML content (TOI fallback)
-    return extractImageFromContent(item.content);
+    // 5. Parse img src from every HTML-bearing field (in priority order)
+    const htmlFields = [
+        item.content,
+        item['content:encoded'],
+        item.summary,
+        item.description,
+    ];
+    for (const html of htmlFields) {
+        const url = extractImageFromHtml(html);
+        if (url) return url;
+    }
+    return undefined;
 };
+

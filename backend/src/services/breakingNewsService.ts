@@ -76,24 +76,36 @@ const BREAKING_FEEDS: FeedDef[] = [
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function extractImage(item: any): string | undefined {
-    // Try media:content first, then media:thumbnail, then enclosure
+    // 1. media:content
     const mc = item.mediaContent;
     if (mc) {
-        if (typeof mc === 'string') return mc;
+        if (typeof mc === 'string' && mc.startsWith('http')) return mc;
         if (mc.$ && mc.$.url) return mc.$.url;
     }
+    // 2. media:thumbnail
     const mt = item.mediaThumbnail;
     if (mt) {
-        if (typeof mt === 'string') return mt;
+        if (typeof mt === 'string' && mt.startsWith('http')) return mt;
         if (mt.$ && mt.$.url) return mt.$.url;
     }
+    // 3. enclosure
     const enc = item.enclosure;
-    if (enc && enc.url && enc.type?.startsWith('image')) return enc.url;
-
-    // Fallback: parse img src from content
-    const content: string = item.content || item.summary || '';
-    const match = content.match(/<img[^>]+src="([^">]+)"/);
-    return match ? match[1] : undefined;
+    if (enc && enc.url && (enc.type?.startsWith('image') || /\.(jpg|jpeg|png|webp|gif)/i.test(enc.url))) {
+        return enc.url;
+    }
+    // 4. Parse img src from every HTML-bearing field
+    const htmlFields = [
+        item.content,
+        item['content:encoded'],
+        item.summary,
+        item.description,
+    ];
+    for (const html of htmlFields) {
+        if (!html || typeof html !== 'string') continue;
+        const m = html.match(/<img[^>]+src=["']([^"'\s>]+)["']/i);
+        if (m && m[1] && m[1].startsWith('http')) return m[1];
+    }
+    return undefined;
 }
 
 function isFresh(pubDate: string): boolean {

@@ -19,6 +19,8 @@ const parser = new Parser({
             ['media:thumbnail', 'mediaThumbnail', { keepArray: false }],
             ['media:group', 'mediaGroup', { keepArray: false }],
             ['enclosure', 'enclosure', { keepArray: false }],
+            ['content:encoded', 'content:encoded', { keepArray: false }],
+            ['description', 'description', { keepArray: false }],
         ],
     },
 });
@@ -121,29 +123,42 @@ const DOMAINS: DomainDef[] = [
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function extractImage(item: any): string | undefined {
+    // 1. media:content
     const mc = item.mediaContent;
     if (mc) {
-        if (typeof mc === 'string') return mc;
+        if (typeof mc === 'string' && mc.startsWith('http')) return mc;
         if (mc.$ && mc.$.url) return mc.$.url;
     }
+    // 2. media:thumbnail
     const mt = item.mediaThumbnail;
     if (mt) {
-        if (typeof mt === 'string') return mt;
+        if (typeof mt === 'string' && mt.startsWith('http')) return mt;
         if (mt.$ && mt.$.url) return mt.$.url;
     }
+    // 3. media:group > media:content
     const mg = item.mediaGroup;
     if (mg && mg['media:content']) {
         const c = mg['media:content'];
         if (c.$ && c.$.url) return c.$.url;
     }
+    // 4. enclosure
     const enc = item.enclosure;
-    if (enc && enc.url && (enc.type?.startsWith('image') || enc.url.match(/\.(jpg|jpeg|png|webp)/i))) {
+    if (enc && enc.url && (enc.type?.startsWith('image') || /\.(jpg|jpeg|png|webp|gif)/i.test(enc.url))) {
         return enc.url;
     }
-    // Parse img from HTML content
-    const html: string = item.content || item.summary || '';
-    const m = html.match(/<img[^>]+src="([^">]+)"/);
-    return m ? m[1] : undefined;
+    // 5. Parse img src from any text field that might carry HTML
+    const htmlFields = [
+        item.content,
+        item.summary,
+        item['content:encoded'],
+        item.description,
+    ];
+    for (const html of htmlFields) {
+        if (!html || typeof html !== 'string') continue;
+        const m = html.match(/<img[^>]+src=["']([^"'\s>]+)["']/i);
+        if (m && m[1] && m[1].startsWith('http')) return m[1];
+    }
+    return undefined;
 }
 
 function isWithinAge(pubDate: string): boolean {
