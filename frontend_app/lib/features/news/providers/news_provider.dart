@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import '../../../core/di/service_locator.dart';
 import '../../../core/models/news_item.dart';
 import '../../../core/services/news_service.dart';
@@ -27,9 +29,8 @@ final newsProvider = FutureProvider.family<List<NewsItem>, String>((ref, categor
 final countryNewsProvider = FutureProvider.family<List<NewsItem>, String>((ref, countryName) async {
   final newsService = getIt<NewsService>();
   
-  // Map full country names AND ISO codes to ISO country codes
+  // Map full country names to ISO country codes
   const codeMap = {
-    // Full names
     'India': 'IN',
     'United States': 'US', 'USA': 'US',
     'United Kingdom': 'GB', 'UK': 'GB',
@@ -41,20 +42,10 @@ final countryNewsProvider = FutureProvider.family<List<NewsItem>, String>((ref, 
     'Australia': 'AU',
     'China': 'CN',
     'Russia': 'RU',
-    'Nepal': 'NP',
-    'Pakistan': 'PK',
-    'Bangladesh': 'BD',
-    'Sri Lanka': 'LK',
-    'Bhutan': 'BT',
-    'Maldives': 'MV',
-    'Afghanistan': 'AF',
-    'South Korea': 'KR',
     // ISO codes pass through directly
     'US': 'US', 'IN': 'IN', 'GB': 'GB', 'JP': 'JP',
     'DE': 'DE', 'FR': 'FR', 'BR': 'BR', 'CA': 'CA',
-    'AU': 'AU', 'NP': 'NP', 'PK': 'PK', 'BD': 'BD',
-    'LK': 'LK', 'BT': 'BT', 'MV': 'MV', 'AF': 'AF',
-    'KR': 'KR', 'CN': 'CN', 'RU': 'RU',
+    'AU': 'AU', 'CN': 'CN', 'RU': 'RU',
   };
   
   final countryCode = codeMap[countryName] ?? countryName;
@@ -69,7 +60,83 @@ final countryNewsProvider = FutureProvider.family<List<NewsItem>, String>((ref, 
 final countryNewsByCategoryProvider = FutureProvider.family<List<NewsItem>, String>((ref, key) async {
   final newsService = getIt<NewsService>();
   final parts = key.split('|');
-  final countryCode = parts[0]; // e.g. 'IN' or 'NP'
+  final countryCode = parts[0]; // e.g. 'IN'
   final category = parts.length > 1 ? parts[1] : 'top'; // e.g. 'Politics'
   return await newsService.getNews(category, country: countryCode);
 });
+
+// ─── Breakthrough ─────────────────────────────────────────────────────────────
+
+/// A single breakthrough discovery item from the dedicated backend endpoint.
+class BreakthroughItem {
+  final String domain;
+  final String domainColor;
+  final String title;
+  final String link;
+  final String pubDate;
+  final String snippet;
+  final String source;
+  final String? imageUrl;
+  final String? author;
+
+  const BreakthroughItem({
+    required this.domain,
+    required this.domainColor,
+    required this.title,
+    required this.link,
+    required this.pubDate,
+    required this.snippet,
+    required this.source,
+    this.imageUrl,
+    this.author,
+  });
+
+  factory BreakthroughItem.fromJson(Map<String, dynamic> j) => BreakthroughItem(
+        domain: j['domain'] ?? 'Science',
+        domainColor: j['domainColor'] ?? '#00B4D8',
+        title: j['title'] ?? '',
+        link: j['link'] ?? '#',
+        pubDate: j['pubDate'] ?? '',
+        snippet: j['snippet'] ?? '',
+        source: j['source'] ?? 'Unknown',
+        imageUrl: j['imageUrl'],
+        author: j['author'],
+      );
+
+  /// Converts to NewsItem for reuse with the existing NewsCard widget.
+  NewsItem toNewsItem(int rank) => NewsItem(
+        title: title,
+        link: link,
+        pubDate: pubDate,
+        content: snippet,
+        contentSnippet: snippet,
+        source: source,
+        imageUrl: imageUrl,
+        author: author,
+        rank: rank,
+      );
+}
+
+/// Provider that fetches all breakthrough items from /api/news/breakthrough.
+/// Grouped result: Map<domainLabel, List<BreakthroughItem>>
+final breakthroughProvider =
+    FutureProvider<Map<String, List<BreakthroughItem>>>((ref) async {
+  const baseUrl = 'https://trendx-1.onrender.com/api';
+  final uri = Uri.parse('$baseUrl/news/breakthrough');
+
+  final response = await http.get(uri).timeout(const Duration(seconds: 30));
+  if (response.statusCode != 200) {
+    throw Exception('Breakthrough fetch failed: ${response.statusCode}');
+  }
+
+  final List<dynamic> raw = jsonDecode(response.body);
+  final items = raw.map((e) => BreakthroughItem.fromJson(e as Map<String, dynamic>)).toList();
+
+  // Group by domain, preserve order from DOMAINS list on backend
+  final Map<String, List<BreakthroughItem>> grouped = {};
+  for (final item in items) {
+    grouped.putIfAbsent(item.domain, () => []).add(item);
+  }
+  return grouped;
+});
+

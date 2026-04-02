@@ -25,6 +25,7 @@ import * as trendingNewsController from './controllers/trendingNewsController';
 
 import { initializeScheduler } from './jobs/trendScheduler';
 import { startBreakingNewsRefresher } from './services/breakingNewsService';
+import { getBreakthroughs, startBreakthroughRefresher } from './services/breakthroughService';
 
 dotenv.config();
 validateEnv();
@@ -115,6 +116,14 @@ app.use('/api/ai', aiRoutes);
 // News Routes
 app.get('/api/news', newsController.getNewsByCategory);
 app.get('/api/news/trending', trendingNewsController.getTrending);
+app.get('/api/news/breakthrough', async (req, res) => {
+  try {
+    const items = await getBreakthroughs();
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch breakthroughs' });
+  }
+});
 
 
 
@@ -170,6 +179,8 @@ const startServer = async () => {
 
   // Start real-time breaking news pre-fetcher (BBC/Reuters/AP — refreshes every 5 min)
   startBreakingNewsRefresher();
+  // Start breakthrough discovery pre-fetcher (refreshes every 10 min)
+  startBreakthroughRefresher();
 
   // Initialize background jobs with Socket.IO
   initializeScheduler(io);

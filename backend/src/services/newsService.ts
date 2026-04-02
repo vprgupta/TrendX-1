@@ -171,7 +171,7 @@ export const getTechNews = async (category: string): Promise<NewsItem[]> => {
 };
 
 /**
- * ─── India & Nepal regional feeds ───────────────────────────────────────────
+ * ─── India regional feeds ────────────────────────────────────────────────────
  * Reliable, always-free RSS sources organised by category.
  * Each bucket is fetched in parallel and merged with the NewsData / Google RSS
  * pipeline so that local stories are always represented alongside global ones.
@@ -211,79 +211,11 @@ const REGIONAL_FEEDS: Record<string, Record<string, string[]>> = {
             'https://www.sciencedaily.com/rss/top/science.xml',               // ScienceDaily (global)
         ],
     },
-    NP: {
-        // Strategy for Nepal: use the general feed from each source (category feeds often fail),
-        // supplement with Google News Nepal geo-targeted search terms via getWorldNews fallback.
-        politics:      [
-            'https://thehimalayantimes.com/feed',                              // Himalayan Times (general, most reliable)
-            'https://risingnepaldaily.com/feed',                               // Rising Nepal Daily
-            'https://english.onlinekhabar.com/feed',                           // Online Khabar English
-            'https://myrepublica.nagariknetwork.com/feed/',                    // My Republica
-        ],
-        business:      [
-            'https://thehimalayantimes.com/feed',                              // Himalayan Times
-            'https://english.onlinekhabar.com/feed',                           // Online Khabar
-            'https://risingnepaldaily.com/feed',                               // Rising Nepal
-            'https://myrepublica.nagariknetwork.com/feed/',                    // My Republica
-        ],
-        health:        [
-            'https://thehimalayantimes.com/feed',                              // Himalayan Times
-            'https://english.onlinekhabar.com/feed',                           // Online Khabar
-            'https://www.healthline.com/rss/news',                             // Healthline global fallback
-        ],
-        entertainment: [
-            'https://thehimalayantimes.com/feed',                              // Himalayan Times
-            'https://english.onlinekhabar.com/feed',                           // Online Khabar
-            'https://myrepublica.nagariknetwork.com/feed/',                    // My Republica
-        ],
-        sports:        [
-            'https://thehimalayantimes.com/feed',                              // Himalayan Times
-            'https://risingnepaldaily.com/feed',                               // Rising Nepal
-            'https://english.onlinekhabar.com/feed',                           // Online Khabar
-        ],
-        science:       [
-            'https://thehimalayantimes.com/feed',                              // Himalayan Times
-            'https://english.onlinekhabar.com/feed',                           // Online Khabar
-            'https://www.sciencedaily.com/rss/top/science.xml',                // ScienceDaily global
-        ],
-    },
 };
 
 /**
- * Nepal: Google News topic-specific RSS feeds geo-targeted to Nepal (English)
- * These ARE properly categorized unlike the general Himalayan Times/Republica feeds.
- */
-const NEPAL_GNEWS: Record<string, string> = {
-    politics:      'https://news.google.com/rss/headlines/section/topic/NATION?hl=en-NP&gl=NP&ceid=NP:en',
-    business:      'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-NP&gl=NP&ceid=NP:en',
-    health:        'https://news.google.com/rss/headlines/section/topic/HEALTH?hl=en-NP&gl=NP&ceid=NP:en',
-    entertainment: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=en-NP&gl=NP&ceid=NP:en',
-    sports:        'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=en-NP&gl=NP&ceid=NP:en',
-    science:       'https://news.google.com/rss/headlines/section/topic/SCIENCE?hl=en-NP&gl=NP&ceid=NP:en',
-};
-
-/**
- * Keywords used to filter off-topic articles when pulling from
- * Nepal's general RSS feeds (which mix all categories together).
- */
-const NEPAL_KEYWORDS: Record<string, string[]> = {
-    politics:      ['government', 'minister', 'parliament', 'prime', 'cabinet', 'policy', 'election', 'party', 'nepal', 'kathmandu', 'constitution', 'federal'],
-    business:      ['economy', 'business', 'market', 'investment', 'bank', 'finance', 'gdp', 'trade', 'industry', 'remittance', 'nrb', 'stock', 'budget', 'revenue'],
-    health:        ['health', 'hospital', 'medical', 'disease', 'doctor', 'medicine', 'vaccine', 'treatment', 'patient', 'dengue', 'mental', 'nutrition'],
-    entertainment: ['entertainment', 'movie', 'film', 'music', 'festival', 'culture', 'art', 'award', 'celebrity', 'bollywood', 'nepali film', 'cinema'],
-    sports:        ['sport', 'cricket', 'football', 'match', 'tournament', 'team', 'player', 'medal', 'athlete', 'game', 'cup', 'marathon', 'olympic', 'goal', 'wicket'],
-    science:       ['science', 'research', 'technology', 'space', 'innovation', 'study', 'discovery', 'environment', 'climate', 'earthquake', 'biodiversity'],
-};
-
-const matchesCategory = (item: NewsItem, keywords: string[]): boolean => {
-    const text = `${item.title} ${item.contentSnippet}`.toLowerCase();
-    return keywords.some(kw => text.includes(kw));
-};
-
-/**
- * Fetch all regional RSS feeds for a given country and category in parallel,
- * merge with NewsData/Google RSS, deduplicate and return top 15+ items.
- * Nepal uses a special path: Google News topic feeds + keyword-filtered general feeds.
+ * Fetch all India regional RSS feeds for a given category in parallel,
+ * merge with NewsData/Google RSS, deduplicate and return top 25 items.
  */
 const getRegionalNews = async (category: string, countryCode: string): Promise<NewsItem[]> => {
     const cc = countryCode.toUpperCase();
@@ -306,88 +238,37 @@ const getRegionalNews = async (category: string, countryCode: string): Promise<N
 
     const regionalItems: NewsItem[] = [];
 
-    if (cc === 'NP' && catKey) {
-        // ─── Nepal special path ──────────────────────────────────────────────────
-        // 1a. Google News topic feed for Nepal (properly categorized, English)
-        const gnewsUrl = NEPAL_GNEWS[catKey];
-        if (gnewsUrl) {
-            try {
-                const feed = await parser.parseURL(gnewsUrl);
-                for (const item of feed.items.slice(0, 25)) {
-                    regionalItems.push({
-                        title:          item.title ?? 'Untitled',
-                        link:           item.link ?? '#',
-                        pubDate:        item.pubDate ?? item.isoDate ?? new Date().toISOString(),
-                        content:        item.content ?? item.contentSnippet ?? '',
-                        contentSnippet: item.contentSnippet ?? '',
-                        source:         (item as any).creator ?? (item as any).source?.title ?? 'Google News Nepal',
-                        imageUrl:       extractItemImage(item as any),
-                        author:         (item as any).creator ?? (item as any).author,
-                    });
-                }
-            } catch (e) {
-                console.log(`⚠️  Nepal GNews ${catKey} failed:`, (e as any).message);
-            }
-        }
-
-        // 1b. Keyword-filter general Nepali feeds (Himalayan Times, Online Khabar, etc.)
-        const keywords = NEPAL_KEYWORDS[catKey] ?? [];
-        const generalFeeds = REGIONAL_FEEDS['NP']?.[catKey] ?? [];
-        if (generalFeeds.length > 0 && keywords.length > 0) {
-            const results = await Promise.allSettled(generalFeeds.map(url => parser.parseURL(url)));
-            for (const r of results) {
-                if (r.status !== 'fulfilled') continue;
-                for (const item of r.value.items.slice(0, 30)) {
-                    const mapped: NewsItem = {
-                        title:          item.title ?? 'Untitled',
-                        link:           item.link ?? '#',
-                        pubDate:        item.pubDate ?? item.isoDate ?? new Date().toISOString(),
-                        content:        item.content ?? item.contentSnippet ?? '',
-                        contentSnippet: item.contentSnippet ?? '',
-                        source:         (item as any).creator ?? (item as any).source?.title ?? r.value.title ?? 'Nepal News',
-                        imageUrl:       extractItemImage(item as any),
-                        author:         (item as any).creator ?? (item as any).author,
-                    };
-                    // Only include articles that match the category's keywords
-                    if (matchesCategory(mapped, keywords)) {
-                        regionalItems.push(mapped);
-                    }
-                }
-            }
-        }
-    } else {
-        // ─── India (and any other regional country) ─────────────────────────────
-        const feeds = (catKey && REGIONAL_FEEDS[cc]?.[catKey]) ?? [];
-        if (feeds.length > 0) {
-            const results = await Promise.allSettled(feeds.map(url => parser.parseURL(url)));
-            for (const r of results) {
-                if (r.status !== 'fulfilled') continue;
-                for (const item of r.value.items.slice(0, 20)) {
-                    regionalItems.push({
-                        title:           item.title ?? 'Untitled',
-                        link:            item.link ?? '#',
-                        pubDate:         item.pubDate ?? item.isoDate ?? new Date().toISOString(),
-                        content:         item.content ?? item.contentSnippet ?? '',
-                        contentSnippet:  item.contentSnippet ?? '',
-                        source:          (item as any).creator ?? (item as any).source?.title ?? r.value.title ?? 'Local',
-                        imageUrl:        extractItemImage(item as any),
-                        author:          (item as any).creator ?? (item as any).author,
-                    });
-                }
+    // ─── India regional RSS feeds ────────────────────────────────────────────
+    const feeds = (catKey && REGIONAL_FEEDS[cc]?.[catKey]) ?? [];
+    if (feeds.length > 0) {
+        const results = await Promise.allSettled(feeds.map(url => parser.parseURL(url)));
+        for (const r of results) {
+            if (r.status !== 'fulfilled') continue;
+            for (const item of r.value.items.slice(0, 20)) {
+                regionalItems.push({
+                    title:           item.title ?? 'Untitled',
+                    link:            item.link ?? '#',
+                    pubDate:         item.pubDate ?? item.isoDate ?? new Date().toISOString(),
+                    content:         item.content ?? item.contentSnippet ?? '',
+                    contentSnippet:  item.contentSnippet ?? '',
+                    source:          (item as any).creator ?? (item as any).source?.title ?? r.value.title ?? 'Local',
+                    imageUrl:        extractItemImage(item as any),
+                    author:          (item as any).creator ?? (item as any).author,
+                });
             }
         }
     }
 
-    // 2. Merge with NewsData / Google RSS pipeline for broader coverage
+    // Merge with NewsData / Google RSS pipeline for broader coverage
     const [genericResult] = await Promise.allSettled([getWorldNews(catKey ?? cat, cc)]);
     const generic = genericResult.status === 'fulfilled' ? genericResult.value : [];
 
     const all = [...regionalItems, ...generic];
 
-    // 3. Sort by recency
+    // Sort by recency
     all.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
-    // 4. Deduplicate
+    // Deduplicate
     const seen = new Set<string>();
     const deduped: NewsItem[] = [];
     for (const item of all) {
@@ -413,10 +294,10 @@ export const getNews = async (category: string = 'world', country: string = 'US'
     const raw = category.replace(/[^\w\s]/gi, '').trim().toLowerCase();
     const cc = country.toUpperCase();
 
-    // 🇮🇳 🇳🇵  REGIONAL — highest priority: India and Nepal always get country-specific feeds
+    // 🇮🇳 REGIONAL — highest priority: India always gets country-specific feeds.
     // This MUST come before the geopolitics check so India+Politics → Indian politics
     // (not global Guardian/BBC politics)
-    if (['IN', 'NP'].includes(cc)) {
+    if (cc === 'IN') {
         return getRegionalNews(raw, cc);
     }
 
@@ -455,15 +336,6 @@ const getGoogleNewsRSS = async (category: string, country: string): Promise<News
         'DE': 'https://news.google.com/rss?hl=en-DE&gl=DE&ceid=DE:en',
         'FR': 'https://news.google.com/rss?hl=en-FR&gl=FR&ceid=FR:en',
         'BR': 'https://news.google.com/rss?hl=en-BR&gl=BR&ceid=BR:en',
-        // Nepal: force English content so the app can display it
-        'NP': 'https://news.google.com/rss?hl=en-NP&gl=NP&ceid=NP:en',
-        'PK': 'https://news.google.com/rss?hl=en-PK&gl=PK&ceid=PK:en',
-        'BD': 'https://news.google.com/rss?hl=en-BD&gl=BD&ceid=BD:en',
-        'LK': 'https://news.google.com/rss?hl=en-LK&gl=LK&ceid=LK:en',
-        'KR': 'https://news.google.com/rss?hl=en-KR&gl=KR&ceid=KR:en',
-        'AF': 'https://news.google.com/rss?hl=en-AF&gl=AF&ceid=AF:en',
-        'BT': 'https://news.google.com/rss?hl=en-BT&gl=BT&ceid=BT:en',
-        'MV': 'https://news.google.com/rss?hl=en-MV&gl=MV&ceid=MV:en',
     };
 
     const topicFeeds: Record<string, string> = {
@@ -781,7 +653,7 @@ const extractItemImage = (item: any): string | undefined => {
         if (typeof mt === 'string') return mt;
         if (mt.$ && mt.$.url) return mt.$.url;
     }
-    // 3. media:group > media:content (some Nepali sources)
+    // 3. media:group > media:content
     const mg = item.mediaGroup;
     if (mg && mg['media:content']) {
         const mgContent = mg['media:content'];
